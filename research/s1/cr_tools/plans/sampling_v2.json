@@ -720,13 +720,13 @@
  "eligibility": "only these exact import-stratum SCREENING ids may get the import-invalid diagnosis; runtime-stratum ids and every completion-stage error halt as before",
  "driver": {
   "rel": "research/s1/cr_tools/cr_calibrate.py",
-  "sha256": "d0025fed5e9c9db21676c49131f97a36629a820af50bf0f7b7939e6d846895bd",
+  "sha256": "eefb7592b8b7bbc2e21bd3c14f202b1e8168abd9b79798ae193ffa669e060f25",
   "policy_version": "a3-t15cp2-policy/1",
   "schema": "a3-t15ce-session/3"
  },
  "probe": {
   "rel": "research/s1/cr_tools/cr_import_probe.py",
-  "sha256": "11d8f4a61bed9faed34633b84a64a8b8f93ea04fbc02f96c689401f70dcd36df",
+  "sha256": "09e3087832299c9ff79b041bbe0f4d5ca4907528ad2221878d37f07c5ae81973",
   "schema": "a3-t15cp2-probe/2"
  },
  "builder": {

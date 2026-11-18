@@ -648,7 +648,7 @@ def test_fix2_M1_the_probe_does_not_claim_an_independent_dis_cross_check():
 # ===================================================================================== fix round 3 (re-review)
 # N1: SQL-level file access (ATTACH, VACUUM INTO) through an allowed connection is checked by a SQLite authorizer the
 # barrier installs on every new connection (sqlite3.connect/handle). N3: unlisted events are checked inside tuple /
-# list arguments. N2 (narrow, pending Codex's ruling): exactly the ctypes events of `import ctypes`,
+# list arguments. N2 (narrow; accepted as amended in Codex's 3e80738 review): exactly the ctypes events of `import ctypes`,
 # `from ctypes import wintypes`, `import msvcrt` and a kernel32 WinDLL with the CreateFileW / CloseHandle prototypes
 # (recorded from a SYNTHETIC toy of that shape) are allowed; every other ctypes / msvcrt / _winapi event is refused.
 def _sqlite_fixtures(tmp_path):
@@ -750,7 +750,9 @@ def test_fix3_N2_the_lock_helper_shaped_toy_imports_clean_under_the_barrier(tmp_
     ("ctypes.CDLL('msvcrt')\n", "ctypes.dlopen"),
     ("_k32.DeleteFileW\n", "ctypes.dlsym"),
     ("_k32.WriteFile\n", "ctypes.dlsym"),
-    ("ctypes.string_at(id(1), 1)\n", "ctypes.string_at"),
+    # fix round 5 (R-N2): ctypes._string_at is a pre-hook module-level pointer, now a refusing wrapper - the call is
+    # refused by the wrapper before the native function's own audit event (was "ctypes.string_at")
+    ("ctypes.string_at(id(1), 1)\n", "ctypes.call_function"),
     ("ctypes.set_last_error(0)\n", "ctypes.set_last_error"),
     ("ctypes.c_int.from_address(id(1))\n", "ctypes.cdata"),
     ("ctypes.addressof(ctypes.c_int(1))\n", "ctypes.addressof"),
@@ -774,13 +776,14 @@ def test_fix3_N2_everything_beyond_the_recorded_import_events_is_refused(tmp_pat
     ("_winapi.CreateNamedPipe", ("x", 0, 0), False),
 ])
 def test_fix3_N2_the_allowlist_is_exactly_the_recorded_set(tmp_path, event, args, ok):
+    import ctypes
     m, hook, refusals, _ = _barrier(tmp_path)
-
-    class Lib:
-        def __init__(self, name):
-            self._name = name
-    a = tuple(Lib("kernel32") if x == "K32" else Lib("user32") if x == "OTHER" else x for x in args)
-    m._CT.active = True                       # as on the guarded CDLL.__getitem__ path
+    # fix round 6 (finding 3): the hook accepts only ctypes' own loader classes, so the libraries are real kernel32
+    # WinDLL instances (loaded, never called); "OTHER" is one whose instance _name says user32
+    other = ctypes.WinDLL("kernel32")
+    other._name = "user32"
+    a = tuple(ctypes.WinDLL("kernel32") if x == "K32" else other if x == "OTHER" else x for x in args)
+    m._CT.active, m._CT.allowed = True, []     # as on the guarded CDLL.__getitem__ path
     try:
         if ok:
             hook(event, a)
@@ -788,7 +791,7 @@ def test_fix3_N2_the_allowlist_is_exactly_the_recorded_set(tmp_path, event, args
         else:
             _refused(m, hook, event, a)
     finally:
-        m._CT.active = False
+        m._CT.active, m._CT.allowed = False, []
     if ok and event == "ctypes.dlsym":        # off the guarded path an allowed symbol is still refused
         _refused(m, hook, event, a)
     assert set(m.CTYPES_ALLOWED) == {("ctypes.dlopen", "kernel32"), ("ctypes.dlsym", "kernel32", "GetLastError"),
@@ -869,3 +872,242 @@ def test_fix4_m4_the_scope_discloses_the_bootstrap_preloads(tmp_path):
     _, rec, _ = run_probe(tmp_path, root, "control")
     for text in (rec["scope"], PROBE.read_text(encoding="utf-8")):
         assert "sqlite3, ctypes and ctypes.wintypes" in text and "differs from collection" in text
+
+
+# ===================================================================================== fix round 5 (Codex 3e80738)
+# R-N2 (Claude's ruling): every allowed kernel32 callable is wrapped on the resolution path (CTYPES_WRAPPED == the
+# dlsym allowlist), and the known pre-hook raw aliases - ctypes.GetLastError, everything cached on the loaded loader /
+# CDLL instances, and every module-level _CFuncPtr in sys.modules - are replaced by refusing wrappers at guard install.
+# The ONLY native call any of these tests can reach is the harmless GetLastError query (refused once fixed).
+def _refusal_events(rec):
+    return [(r["event"], r["reason"]) for r in (rec.get("barrier") or {}).get("refusals") or []]
+
+
+@pytest.mark.parametrize("src", [
+    'import ctypes\nDLL = ctypes.WinDLL("kernel32", use_last_error=True)\nRESULT = DLL.GetLastError()\n',   # Codex
+    "import ctypes\nRESULT = ctypes.GetLastError()\n",
+    "import ctypes\nRESULT = ctypes.windll.kernel32.GetLastError()\n",
+])
+def test_fix5_RN2_a_get_last_error_call_is_refused(tmp_path, src):
+    root = toy_copy(tmp_path, src)
+    run, rec, _ = run_probe(tmp_path, root, "control")
+    assert run["rc"] == 0, run
+    assert ("ctypes.call_function", "foreign_call_refused") in _refusal_events(rec), (rec.get("imported"),
+                                                                                    _refusal_events(rec))
+    assert rec.get("imported") is not True
+
+
+@pytest.mark.parametrize("mode", ["control", "mutated"])
+def test_fix5_RN2_the_lock_helper_declarations_still_import_clean_in_both_modes(tmp_path, mode):
+    root = toy_copy(tmp_path, LOCKS_SHAPE + "Z = 1 + 2\n")              # line 15: the mutated child's site
+    spec = dict(SUB_SPEC, start=[15, 6], end=[15, 7])
+    _, rec, _ = run_probe(tmp_path, root, mode, spec)
+    assert rec["barrier"]["refusals"] == [] and rec["imported"] is True, (rec["barrier"], rec.get("exception"))
+
+
+def test_fix5_RN2_no_raw_foreign_function_alias_survives_guard_install(tmp_path):
+    src = ("import ctypes\n"
+           "RAW = sorted(k for k, v in vars(ctypes).items() if isinstance(v, ctypes._CFuncPtr))\n"
+           "RAWK = sorted(k for k, v in vars(ctypes.windll.kernel32).items() if isinstance(v, ctypes._CFuncPtr))\n"
+           "assert RAW == [] and RAWK == [], (RAW, RAWK)\n")
+    root = toy_copy(tmp_path, src)
+    _, rec, _ = run_probe(tmp_path, root, "control")
+    assert rec["barrier"]["refusals"] == [] and rec.get("imported") is True, rec.get("exception")
+    found = set((rec["barrier"].get("guards") or {}).get("ctypes_preexisting_wrapped") or [])
+    want = {"ctypes.GetLastError", "ctypes.memmove", "ctypes.memset", "ctypes._cast", "ctypes._string_at",
+            "ctypes._wstring_at", "ctypes.windll.kernel32.GetLastError"}
+    assert want <= found, sorted(found)
+
+
+def test_fix5_RN2_the_sys_modules_scan_wraps_module_level_pointers_and_loader_caches():
+    """Unit level, in-process: synthetic modules hold a raw kernel32 pointer (looked up, NEVER called), a CDLL with a
+    cached pointer and a LibraryLoader with a cached CDLL; every raw pointer is replaced and recorded."""
+    import ctypes
+    import types
+    m = _probe_mod()
+    scan = _attr(m, "wrap_preexisting_foreign_functions")
+    lib = ctypes.WinDLL("kernel32")
+    raw = lib["GetLastError"]
+    cached = ctypes.WinDLL("kernel32")
+    _ = cached.GetLastError                                    # attribute access caches the pointer (no call)
+    loader = ctypes.LibraryLoader(ctypes.WinDLL)
+    _ = loader.kernel32.GetLastError
+    mod = types.ModuleType("synthetic_fix5")
+    mod.RAW, mod.ALIAS, mod.LIB, mod.LOADER, mod.OTHER = raw, raw, cached, loader, 7
+    wrapped = []
+
+    def wrap(func, label):
+        wrapped.append(label)
+        return ("W", label)
+    found = scan({"synthetic_fix5": mod, "not_a_module": None}, wrap)
+    assert set(found) == {"synthetic_fix5.RAW", "synthetic_fix5.ALIAS", "synthetic_fix5.LIB.GetLastError",
+                          "synthetic_fix5.LOADER.kernel32.GetLastError"}, found
+    assert mod.RAW == mod.ALIAS == ("W", "synthetic_fix5.RAW"), "one wrapper per raw pointer"
+    assert vars(cached)["GetLastError"][0] == "W" and vars(vars(loader)["kernel32"])["GetLastError"][0] == "W"
+    assert mod.OTHER == 7
+
+
+def test_fix5_RN2_the_wrapped_set_is_derived_from_the_dlsym_allowlist():
+    m = _probe_mod()
+    want = {(k[1], k[2]) for k in m.CTYPES_ALLOWED if k[0] == "ctypes.dlsym"}
+    assert set(_attr(m, "CTYPES_WRAPPED")) == want and ("kernel32", "GetLastError") in want, m.CTYPES_WRAPPED
+    src = PROBE.read_text(encoding="utf-8")
+    for name in ("GetLastError", "CreateFileW", "CloseHandle"):
+        assert src.count(f'"{name}"') == 1, f"{name} is named once (CTYPES_ALLOWED), never duplicated"
+
+
+def test_fix5_RN2_the_barrier_claim_is_accurate():
+    m = _probe_mod()
+    src = PROBE.read_text(encoding="utf-8")
+    for text in (m.CLAIM, src):
+        assert "resolution path" in text and "enumerated pre-hook aliases" in text, text[:400]
+        assert "disclosed limit" in text and "not an OS sandbox" in text
+    assert "any foreign call" not in src.lower() and "PENDING Codex" not in src
+
+
+# ===================================================================================== fix round 6 (re-review 4)
+# R-N2 TOCTOU: the guarded __getitem__ wraps EVERY pointer resolved while the guard is active, labelled from the names
+# the hook validated. Finding 3: the hook never runs target code - a ctypes-own CDLL class by exact type, `_name` from
+# the instance __dict__ as an exact str, an exact-str symbol, exact-typed path arguments (str, bytes, a stdlib path
+# type), and a re-entrant event while the hook is busy is REFUSED. Ported from the re-reviewer's rr4 toys; the only
+# native call any of them can reach is kernel32 GetLastError (refused once fixed).
+NAME_PROPERTY_TOCTOU = (
+    "import ctypes\n"
+    "class D(ctypes.WinDLL):\n"
+    "    _n = 0\n"
+    "    @property\n"
+    "    def _name(self):\n"
+    "        type(self)._n += 1\n"
+    "        return 'kernel32' if type(self)._n <= 1 else 'other'\n"
+    "    @_name.setter\n"
+    "    def _name(self, v):\n"
+    "        pass\n"
+    "D._n = -10\n"
+    "DLL = D('kernel32')\n"
+    "D._n = 0\n"
+    "F = DLL['GetLastError']\n"
+    "RESULT = F()\n")
+NAME_EQ_TOCTOU = (
+    "import ctypes\n"
+    "class N(str):\n"
+    "    n = 0\n"
+    "    def __eq__(self, o):\n"
+    "        N.n += 1\n"
+    "        return str.__eq__(self, o) if N.n <= 1 else False\n"
+    "    __hash__ = str.__hash__\n"
+    "DLL = ctypes.WinDLL('kernel32')\n"
+    "F = DLL[N('GetLastError')]\n"
+    "RESULT = F()\n")
+
+
+@pytest.mark.parametrize("src", [NAME_PROPERTY_TOCTOU, NAME_EQ_TOCTOU], ids=["name_property", "name_eq"])
+def test_fix6_RN2_a_toctou_on_the_resolution_path_is_refused(tmp_path, src):
+    root = toy_copy(tmp_path, src)
+    run, rec, _ = run_probe(tmp_path, root, "control")
+    assert run["rc"] == 0, run
+    ev = _refusal_events(rec)
+    assert ev and rec.get("imported") is not True, (rec.get("imported"), ev)
+
+
+def _marker_toy(tmp_path):
+    marker = tmp_path / "outside" / "escape.txt"
+    marker.parent.mkdir()
+    return marker
+
+
+def test_fix6_F3_a_name_property_never_runs_inside_the_hook(tmp_path):
+    """The re-reviewer's reentry toy: a WinDLL subclass whose _name property writes a file outside the scratch
+    roots when the hook reads it. The pointer is never called."""
+    marker = _marker_toy(tmp_path)
+    src = ("import ctypes\n"
+           "class D(ctypes.WinDLL):\n"
+           "    armed = False\n"
+           "    @property\n"
+           "    def _name(self):\n"
+           "        if D.armed:\n"
+           "            D.armed = False\n"
+           f"            open({str(marker)!r}, 'w').write('written from inside the audit hook')\n"
+           "        return 'kernel32'\n"
+           "    @_name.setter\n"
+           "    def _name(self, v):\n"
+           "        pass\n"
+           "DLL = D('kernel32')\n"
+           "D.armed = True\n"
+           "F = DLL['GetLastError']\n"
+           "ESCAPED = True\n")
+    root = toy_copy(tmp_path, src)
+    _, rec, _ = run_probe(tmp_path, root, "control")
+    assert not marker.exists(), "target code ran inside the audit hook and escaped the write barrier"
+    assert _refusal_events(rec) and rec.get("imported") is not True, _refusal_events(rec)
+
+
+def test_fix6_F3_a_fspath_side_effect_never_runs_inside_the_hook(tmp_path):
+    """A target PathLike whose FIRST __fspath__ call writes outside scratch. shutil.copyfile audits the ORIGINAL
+    object before converting it (fact-checked in 3.12: shutil.copyfile and sqlite3.connect carry it; open and os.*
+    carry the converted str), so the old hook's resolve() made call 1 while busy. The paths are inside scratch."""
+    marker = _marker_toy(tmp_path)
+    src = ("import shutil\nfrom pathlib import Path\n"
+           "SRC = Path(__file__).parent / 'in.txt'\n"
+           "SRC.write_text('x', encoding='utf-8')\n"
+           "class P:\n"
+           "    n = 0\n"
+           "    def __fspath__(self):\n"
+           "        P.n += 1\n"
+           "        if P.n == 1:\n"
+           f"            open({str(marker)!r}, 'w').write('fspath inside the hook')\n"
+           "        return str(SRC)\n"
+           "shutil.copyfile(P(), str(SRC) + '.copy')\n")
+    root = toy_copy(tmp_path, src)
+    _, rec, _ = run_probe(tmp_path, root, "control")
+    assert not marker.exists(), "a target __fspath__ ran inside the audit hook"
+    assert _refusal_events(rec), rec.get("exception")
+
+
+@pytest.mark.parametrize("make", [
+    lambda s: type("S", (str,), {})(str(s / "a")),                      # a str subclass
+    lambda s: type("B", (bytes,), {})(str(s / "a").encode()),           # a bytes subclass
+    lambda s: type("P", (), {"__fspath__": lambda self: str(s / "a")})(),   # a non-stdlib PathLike
+])
+def test_fix6_F3_non_exact_path_arguments_are_refused_without_running_their_code(tmp_path, make, monkeypatch):
+    m, hook, refusals, scratch = _barrier(tmp_path)
+    monkeypatch.chdir(scratch)
+    v = make(scratch)
+    for event, args in (("open", (v, "r", 0)), ("os.remove", (v, -1)), ("custom.event", ((v,),))):
+        _refused(m, hook, event, args)
+    hook("open", (str(scratch / "a"), "r", 0))                          # exact str: still allowed
+    hook("open", (scratch / "a", "r", 0))                               # a stdlib Path: still allowed
+    hook("open", (str(scratch / "a").encode(), "r", 0))                 # exact bytes: still allowed
+
+
+def test_fix6_F3_a_re_entrant_event_while_the_hook_is_busy_is_refused(tmp_path):
+    m, hook, refusals, scratch = _barrier(tmp_path)
+    local = getattr(hook, "_local", None)
+    assert local is not None, "the hook exposes its per-thread busy flag (hook._local)"
+    local.busy = True
+    try:
+        _refused(m, hook, "open", (str(scratch / "a"), "r", 0))
+    finally:
+        local.busy = False
+    assert refusals[-1]["reason"] == "reentrant_event", refusals
+
+
+def test_fix6_F3_the_dlsym_branch_requires_ctypes_own_classes_and_exact_strings(tmp_path):
+    import ctypes
+    m, hook, refusals, _ = _barrier(tmp_path)
+    k32 = ctypes.WinDLL("kernel32")                                     # loaded, never called
+    sub = type("D", (ctypes.WinDLL,), {})("kernel32")
+    s = type("N", (str,), {})("GetLastError")
+    m._CT.active, m._CT.allowed = True, []
+    try:
+        hook("ctypes.dlsym", (k32, "GetLastError"))                     # the genuine shape is allowed once
+        assert refusals == [] and len(m._CT.allowed) == 1
+        m._CT.allowed = []
+        for args in ((sub, "GetLastError"), (k32, s)):
+            _refused(m, hook, "ctypes.dlsym", args)
+        m._CT.allowed = []
+        hook("ctypes.dlsym", (k32, "GetLastError"))
+        _refused(m, hook, "ctypes.dlsym", (k32, "GetLastError"))      # a second dlsym in one window
+    finally:
+        m._CT.active, m._CT.allowed = False, []
+    _refused(m, hook, "ctypes.dlopen", (type("N", (str,), {})("kernel32"),))
+    assert refusals[-1]["event"] == "ctypes.dlopen"

@@ -72,7 +72,9 @@ measurements - the cap comes from a write-once <C>/cap_measurements.json (the st
 state's sha256) that records each excluded id with its item and diagnostic cost. Fix round 3: an id is excluded only
 when its dg/disposition.json is present with the sha256 the session recorded (N4); the measurement set is re-checked
 against the state sha it records (N5); and derive-cap REFUSES below the plan bound cap_min_measurements (24 =
-batch_max, R1, pending a peer ruling; validate_plan accepts any int in 1..24 there, so a ruling changes the plan only).
+batch_max, R1). RULED by Codex in review 1270dc4e: KEEP 24 - never lowered to 18 or to the measured count, no
+automatic fallback; a config with fewer than 24 clean measurements finishes its diagnostic calibration but derives no
+cap (a top-up design needs its own prospective IDs / budget and GO). validate_plan's 1..24 range is unchanged.
 
 15c-P2 (Codex PROVENANCE_P_RULING, design P; Claude amendments A1-A4; policy POLICY_VERSION, report schema SCHEMA):
  * The calibration ids come from the EXTERNAL sampling plan v2 (plans/sampling_v2.json, built by build_sampling_v2.py,
@@ -88,11 +90,18 @@ batch_max, R1, pending a peer ruling; validate_plan accepts any int in 1..24 the
  * P2 admission: before an eligible item's original CR execution starts, the parent session clock (session.json, the
    same clock run_batch uses) must leave admission_reservation_s() = 405 + 2 * (60 + 45 + 15) = 645 s, else a
    durable fence stop (policy_result.json, no CR call, no next candidate). Non-eligible items keep run_batch's 405 s.
+   ACCEPTED as built by Codex in review 1270dc4e (checked after run_batch's copy, before the original CR starts).
  * Qualifying (qualify): the canonical error / error:collection result with exec ok, cleanup verified, no raw
    timeout, AND the trusted guard records bound to this job / attempt / sidecar (guard.json by the reviewed guard,
    one attempt dir, nodes.json by sha256, classification.json) showing selected == [] and phases == {} (no call, no
-   internal error, the target never finished importing) with one consistent collection-error class. Else: halt as
-   before (the reason says why it did not qualify).
+   internal error, the target never finished importing) with one consistent collection-error class. Fix round 5
+   (Codex X27): AND every original collection error passes a conservative secondary rendered-trace VETO
+   (rendered_origin): its `path:lineno: in <name>` lines parse unambiguously, the innermost names the target at a line
+   inside the mutation's span, no other file follows the first target frame, an E line follows; gate re-applies it
+   with the probe's exception class. The veto can only reject - never provenance. Fix round 6 (re-review 4): lines
+   split on "\n" only (pytest's model), any other line separator halts (ambiguous_format), and a longrepr at the
+   guard's cut (guard_longrepr_cap, derived from cr_guard's source by AST) halts (truncated). Else: halt as before
+   (the reason says why it did not qualify).
  * The diagnosis pair (A3), each child through cr_guard.run_contained with the bound _env, a 60 s deadline and
    verified cleanup, on a fresh copy made with the original copy semantics (make_copy; the tree must be the original
    attempt's): child 1 imports the UNMUTATED target (cr_import_probe.py control) and must import clean with the
@@ -170,7 +179,7 @@ CLEANUP_RESERVE_S = 45
 PROBE_DEADLINE_S = 60                         # each diagnosis child (cr_guard.run_contained deadline)
 DIAG_IO_MARGIN_S = 15                         # per child: fresh copy, hashing, record I/O
 MAX_DIAG_CHILDREN = 2                         # 1 unmutated control + 1 mutated import, no retries
-CAP_MIN_MEASUREMENTS = 24                     # fix round 3 (R1): = BUDGETS["batch_max"], pending a peer ruling
+CAP_MIN_MEASUREMENTS = 24                     # R1: = BUDGETS["batch_max"]; KEEP 24, ruled by Codex review 1270dc4e
 PROBE_PREFIX = ("research/s1/s1_tests", "research/s1", ".")     # A1: conftest inserts + the child's cwd
 
 
@@ -194,8 +203,8 @@ def expected_bounds() -> dict:
             "diag_io_margin_s": DIAG_IO_MARGIN_S, "max_children_per_item": MAX_DIAG_CHILDREN,
             "diagnosis_reserve_s": diagnosis_reserve_s(), "admission_reservation_s": admission_reservation_s(),
             "non_eligible_fence_s": ORIGINAL_FENCE_S,
-            # fix round 3 (R1): derive-cap refuses below this many clean killed / survived measurements; the one
-            # bound a later peer ruling may change in the plan alone (validate_plan: an int in 1..SAMPLE_SIZE)
+            # R1: derive-cap refuses below this many clean killed / survived measurements; ruled KEEP 24 (Codex
+            # review 1270dc4e, no fallback). validate_plan still accepts an int in 1..SAMPLE_SIZE (unchanged)
             "cap_min_measurements": CAP_MIN_MEASUREMENTS,
             "rule": "admission = original fence + max_children * (child deadline + cleanup reserve + IO margin); "
                     "same parent session clock; a proposed reservation, not a measured timing guarantee"}
@@ -755,11 +764,13 @@ def exception_name(exc: dict) -> str:
 
 
 def gate(rec, *, module_rel: str, pre_text: str, post_text: str, post_sha: str, start, end,
-         collect_names) -> tuple:
+         collect_names, rendered_origins=None) -> tuple:
     """P3: the structural gate on the mutated probe record. (True, info) only when the INNERMOST frame is the
     target file at the mutation site's actual lexical context, its instruction span overlaps the mutated span, every
     frame from the first target frame on is the target, no barrier refused anything and the original collection
-    errors name the same exception class. Fail closed everywhere."""
+    errors name the same exception class. Fix round 5 (X27): it re-applies qualify's secondary rendered-trace veto -
+    one parsed origin per original collection error, each in the target at a line inside the span with the probe's
+    exception class; missing / malformed origins HALT. Fail closed everywhere."""
     info: dict = {}
 
     def no(code, detail=""):
@@ -830,13 +841,25 @@ def gate(rec, *, module_rel: str, pre_text: str, post_text: str, post_sha: str, 
     names = list(collect_names or [])
     if not names or any(n != info["exception"] for n in names):
         return no("collection_errors_inconsistent", f"original {names} vs probe {info['exception']}")
+    origins = rendered_origins                             # fix round 5 (X27): the veto, re-applied here
+    if not isinstance(origins, list) or not origins or len(origins) != len(names):
+        return no("rendered_veto", f"{len(origins) if isinstance(origins, list) else None} parsed origins for "
+                                   f"{len(names)} collection errors")
+    target = _rel_norm(module_rel)
+    for o in origins:
+        line = o.get("line") if isinstance(o, dict) else None
+        if (not isinstance(o, dict) or o.get("file") != target or type(line) is not int
+                or not int(start[0]) <= line <= int(end[0]) or o.get("e_name") != info["exception"]):
+            return no("rendered_veto", f"origin {o!r} is not the target span with {info['exception']}")
+    info["rendered_origins"] = [[o["file"], o["line"]] for o in origins]
     info["reasons"] = ["barriers installed, no refusal", "imported: False (exception at import)",
                        f"innermost frame is the target ({module_rel})", "no dependency frame after the target",
                        "innermost file sha256 == mutated source", f"lexical context {ctx} matches the frame code",
                        "positions valid (positions_agree is a consistency re-read of co_positions, not an "
                        "independent check; the tb_lasti // 2 mapping is verified by the toy tests)",
                        "frame span overlaps the mutated span",
-                       f"original collection errors all name {info['exception']} (secondary text consistency)"]
+                       f"original collection errors all name {info['exception']} (secondary text consistency)",
+                       f"{VETO_NOTE}; origins {info['rendered_origins']}"]
     return True, info
 
 
@@ -849,8 +872,119 @@ _ELINE = re.compile(r"^E +([A-Za-z_][\w.]*)(?::|$)")
 
 def _e_name(longrepr: str) -> str | None:
     """The exception name of the LAST 'E   Name: ...' line (rendered text: SECONDARY consistency evidence only)."""
-    names = [m.group(1) for m in (_ELINE.match(ln) for ln in str(longrepr).splitlines()) if m]
+    # fix round 6 (re-review 4, finding 1): pytest's line model - split on "\n" ONLY (str.splitlines also splits on
+    # \r, \x0b, \x0c, \x1c-\x1e, \x85,  ,  , which pytest renders inside one E line)
+    names = [m.group(1) for m in (_ELINE.match(ln) for ln in str(longrepr).split("\n")) if m]
     return names[-1] if names else None
+
+
+# the str.splitlines separators other than "\n": present anywhere in a rendered longrepr -> ambiguous, HALT
+_OTHER_SEPARATORS = ("\r", "\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x85", " ", " ")
+
+
+def guard_longrepr_cap(guard_path=None) -> int | None:
+    """Fix round 6 (finding 4): the guard keeps str(report.longrepr)[:N] for each collection error. cr_guard exposes
+    no constant for N (it is a literal in the reviewed, read-only harness), so N is DERIVED from the guard's source by
+    AST - never by import, never restated: exactly one ``str(<x>.longrepr)[:<int>]`` slice; anything else is None
+    (the veto then halts). Default: the bound cr_guard's file."""
+    if guard_path is None and cr_guard is None:
+        return None                                        # no bound harness: not derivable (the veto halts)
+    path = Path(guard_path if guard_path is not None else cr_guard.__file__)
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, SyntaxError):
+        return None
+    caps = []
+    for n in ast.walk(tree):
+        if (isinstance(n, ast.Subscript) and isinstance(n.slice, ast.Slice) and n.slice.lower is None
+                and n.slice.step is None and isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name)
+                and n.value.func.id == "str" and len(n.value.args) == 1 and not n.value.keywords
+                and isinstance(n.value.args[0], ast.Attribute) and n.value.args[0].attr == "longrepr"):
+            up = n.slice.upper
+            caps.append(up.value if isinstance(up, ast.Constant) and type(up.value) is int else None)
+    return caps[0] if len(caps) == 1 and caps[0] is not None and caps[0] > 0 else None
+
+
+# fix round 5 (Codex X27): pytest's short-style location line `path:lineno: in <name>` (the format of the guard's
+# collection reports), and its long-style `path:lineno: ExcName` - a second candidate format, never accepted
+_LOC_IN = re.compile(r"^(?P<path>\S.*):(?P<line>[^:\s]*): in (?P<name>\S.*)$")
+_LOC_LONG = re.compile(r"^(?P<path>\S.*):(?P<line>[0-9]+): (?P<msg>[A-Za-z_][\w.]*)$")
+_DIGITS = re.compile(r"^[0-9]+$")
+VETO_NOTE = ("secondary rendered-trace veto passed: per-error parsed (file, line) only; the rendered text can only "
+             "reject - never provenance, the genuine contained mutated probe stays the primary evidence")
+
+
+def _rel_norm(p) -> str:
+    """A rendered path, normalised for an EXACT comparison: backslashes to '/', leading './' removed."""
+    s = str(p).strip().replace("\\", "/")
+    while s.startswith("./"):
+        s = s[2:]
+    return s
+
+
+def rendered_origin(longrepr: str, module_rel: str, start, end, *, cap=None) -> tuple:
+    """Fix round 5 (X27): the conservative per-error VETO on one original collection error's rendered longrepr.
+    (True, origin) only when its `path:lineno: in <name>` location lines parse unambiguously, the innermost (last) one
+    names the target (exact relative path after normalisation) at a line inside the mutation's line span, no line
+    after the first target frame names another file, and an E line follows the innermost location. Anything else -
+    no location line, more than one candidate format, an unparseable line number, a missing E line, an innermost
+    frame outside the target - is (False, info) with a fixed code: the item HALTS. Secondary evidence: it can only
+    reject, never establish origin. Fix round 6 (re-review 4): lines are split on "\n" ONLY (pytest's model) and any
+    other str.splitlines separator HALTS as ambiguous_format (finding 1); a longrepr at or above the guard's cut
+    (``cap``, default guard_longrepr_cap(); None - not derivable - halts) HALTS as truncated (finding 4)."""
+    target = _rel_norm(module_rel)
+    info: dict = {"file": None, "line": None}
+
+    def no(code, detail=""):
+        info["why"] = f"{code}: {detail}" if detail else code
+        return False, info
+    try:
+        lo, hi = int(start[0]), int(end[0])
+    except (TypeError, ValueError, IndexError, KeyError):
+        return no("span_invalid", f"{start}-{end}")
+    text = str(longrepr)
+    cap = guard_longrepr_cap() if cap is None else cap
+    if type(cap) is not int or cap <= 0:
+        return no("truncated", "the guard's longrepr cap is not derivable")
+    if len(text) >= cap:
+        return no("truncated", f"{len(text)} characters >= the guard's cap {cap}: a later frame may be lost")
+    other = sorted({repr(c) for c in _OTHER_SEPARATORS if c in text})
+    if other:
+        return no("ambiguous_format", f"line separator(s) {', '.join(other)} besides \\n")
+    lines = text.split("\n")
+    locs, long_style, bad, last = [], 0, [], -1
+    for i, ln in enumerate(lines):
+        if not ln or ln[0].isspace() or ln.startswith("E "):
+            continue
+        m = _LOC_IN.match(ln)
+        if m:
+            if not _DIGITS.match(m.group("line")):
+                bad.append(ln[:120])
+                continue
+            locs.append((_rel_norm(m.group("path")), int(m.group("line")), m.group("name")))
+            last = i
+        elif _LOC_LONG.match(ln):
+            long_style += 1
+    info["frames"] = [[p, n] for p, n, _ in locs]
+    if bad:
+        return no("unparseable_location", bad[0])
+    if locs and long_style:
+        return no("ambiguous_format", "both 'path:N: in <name>' and 'path:N: Name' location lines")
+    if not locs:
+        return no("no_location_line", "no parseable 'path:lineno: in <name>' line")
+    e_names = [m.group(1) for m in (_ELINE.match(ln) for ln in lines[last + 1:]) if m]
+    if not e_names:
+        return no("e_line_missing", "no E line after the innermost location")
+    path, line, _name = locs[-1]
+    info.update(file=path, line=line, e_name=e_names[-1])
+    if path != target:
+        return no("innermost_not_target", f"{path}:{line}")
+    if not lo <= line <= hi:
+        return no("line_outside_span", f"{path}:{line} vs span lines {lo}-{hi}")
+    first = next(i for i, (p, _, _) in enumerate(locs) if p == target)
+    if any(p != target for p, _, _ in locs[first:]):
+        return no("dependency_after_target", "another file after the first target frame")
+    return True, info
 
 
 def qualify(item: dict, result: dict, job_dir: Path, target: str) -> tuple:
@@ -939,8 +1073,20 @@ def qualify(item: dict, result: dict, job_dir: Path, target: str) -> tuple:
         return no("E-line: a collection error has no exception line")
     if len(set(names)) != 1:
         return no(f"mixed collection errors: {sorted(set(names))}")
+    origins = []                                   # fix round 5 (X27): the secondary per-error veto, EVERY error
+    cap = guard_longrepr_cap()                     # fix round 6: derived from the bound guard's source (AST)
+    facts["guard_longrepr_cap"] = cap
+    for e in errs:
+        ok, o = rendered_origin(e["longrepr"], item.get("module_path", ""), item.get("start"), item.get("end"),
+                                cap=cap if cap is not None else 0)
+        origins.append(dict(o, nodeid=e["nodeid"]))
+        if not ok:
+            facts["rendered_veto"] = origins
+            return no(f"rendered-trace veto: {e['nodeid']}: {o['why']}")
     facts.update(attempt=att, nodes_sha256=_sha(np_), collect_names=names, classification_sha256=_sha(cp),
-                 collect_errors=len(errs))
+                 collect_errors=len(errs),
+                 rendered_origins=[{k: o.get(k) for k in ("nodeid", "file", "line", "e_name")} for o in origins],
+                 rendered_veto=VETO_NOTE)
     return None, facts
 
 
@@ -1018,7 +1164,8 @@ class Diagnoser:
             raise DiagnosisHalt(f"not_localized:{loc['why'].split(':')[0]}", localize=loc, record=str(mut_path))
         pre_path = self._check_preimport(mut, mut_path, loc)
         passed, info = gate(mut, module_rel=mod_rel, pre_text=pre_text, post_text=post_text, post_sha=post_sha,
-                            start=item["start"], end=item["end"], collect_names=facts.get("collect_names"))
+                            start=item["start"], end=item["end"], collect_names=facts.get("collect_names"),
+                            rendered_origins=facts.get("rendered_origins"))
         if not passed:
             raise DiagnosisHalt(info["why"].split(":")[0], gate=info, frames_tail=info.get("frames_tail"),
                                 record=str(mut_path))
@@ -1351,7 +1498,8 @@ def _diagnosis_step(diag: Diagnoser, item: dict, result: dict, out: dict, reason
         return out, reason, {"diagnosis": {"qualifying": False, "why": "not an eligible screening id of the plan"}}
     why, facts = qualify(item, result, Path(job_dir), diag.cfg.target_module)
     if why is not None:
-        return out, reason, {"diagnosis": {"qualifying": False, "why": why}}
+        extra = {"rendered_veto": facts["rendered_veto"]} if "rendered_veto" in facts else {}   # fix round 5 (X27)
+        return out, reason, {"diagnosis": {"qualifying": False, "why": why, **extra}}
     entry["probe"] = True
     t = time.monotonic()
     try:

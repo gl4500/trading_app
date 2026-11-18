@@ -45,9 +45,25 @@ an OS sandbox and no claim of full isolation: native code can bypass audit event
   Fix round 3: every new SQLite connection gets an authorizer (sqlite3.connect/handle) that denies ATTACH - which
   VACUUM INTO also asks for - unless the file is in-memory or inside scratch and not protected; a connection whose
   authorizer cannot be installed is refused (cooperative: the target could replace the authorizer). Unlisted events
-  are checked inside tuple / list arguments. PENDING Codex's ruling (may be reverted): CTYPES_ALLOWED, exactly the
-  ctypes events of importing ctypes / wintypes / msvcrt and a kernel32 WinDLL with the CreateFileW / CloseHandle
-  prototypes (recorded from a synthetic toy of the s1_locks.py:12,34-43 shape); calling any of them is refused.
+  are checked inside tuple / list arguments. CTYPES_ALLOWED (the narrow declaration binding, accepted as amended
+  by Codex's exact-head review of 3e80738): exactly the ctypes events of importing ctypes / wintypes / msvcrt and a
+  kernel32 WinDLL with the CreateFileW / CloseHandle prototypes (recorded from a synthetic toy of the
+  s1_locks.py:12,34-43 shape). Fix round 5 (R-N2, declarations allowed, calls refused): a call is refused on the
+  guarded resolution path (every allowed symbol - GetLastError, CreateFileW, CloseHandle - is wrapped) and on the
+  enumerated pre-hook aliases (ctypes.GetLastError, every pointer cached on the loaded loader / CDLL instances, every
+  module-level _CFuncPtr in sys.modules at guard install, all replaced by refusing wrappers and recorded). A raw
+  pointer obtained another way (closure or gc introspection, native code) is a disclosed limit of this cooperative
+  barrier, not an OS sandbox.
+  Fix round 6 (re-review 4): the guarded __getitem__ wraps EVERY pointer resolved in its window, labelled from the
+  names the hook validated (no TOCTOU), and allows exactly one dlsym per window. The hook never runs target code
+  (a pre-existing hole, now closed: a target _name property / __fspath__ used to run inside the hook, where its own
+  audit events went unchecked): dlopen / dlsym need ctypes' own loader class by exact type, _name from the genuine
+  instance __dict__ as an exact str and an exact-str symbol; path arguments must be an exact str / bytes, an
+  os.DirEntry or a stdlib pathlib object of exact type with builtin-only state (a str / bytes subclass or any other
+  PathLike is refused, never converted); containers are walked with the builtin types' own iterators; and an event
+  raised while the hook is busy is REFUSED. Disclosed: target code that rebinds the stdlib functions, ctypes or
+  probe internals the hook relies on (os.path.realpath, pathlib methods, the probe module's globals) is outside
+  this cooperative guarantee.
 Paths are resolved first (extended \\\\?\\ prefix stripped, relative to cwd, '..' collapsed, symlinks followed, case
 folded). A refusal is recorded with its own reason (event, reason, the path - never file contents) and raised from the
 hook, so the innermost frame is this probe, never the target; the driver then HALTS.
@@ -115,6 +131,102 @@ import ctypes                                    # noqa: E402   below patch them
 if sys.platform == "win32":
     from ctypes import wintypes                  # noqa: E402,F401
 
+import pathlib                                   # noqa: E402
+
+# ---- fix round 6 (re-review 4, finding 3): references captured in the bootstrap window, BEFORE any target code, so
+# the hook classifies arguments by exact type identity and reads attributes through these original descriptors -
+# never through the target's own __class__ / __eq__ / __hash__ / __fspath__ / __str__ / __index__ / properties.
+_TYPE_MRO = type.__dict__["__mro__"]             # getset descriptors of `type` itself: no metaclass lookup
+_TYPE_DICT = type.__dict__["__dict__"]
+_TYPE_NAME = type.__dict__["__name__"]
+_TYPE_BASES = type.__dict__["__bases__"]
+_STD_PATH_TYPES = tuple(getattr(pathlib, n) for n in ("PurePath", "PurePosixPath", "PureWindowsPath", "Path",
+                                                      "PosixPath", "WindowsPath"))
+_PATH_SLOTS = tuple(pathlib.PurePath.__dict__[n] for n in getattr(pathlib.PurePath, "__slots__", ())
+                    if n in pathlib.PurePath.__dict__)
+_DIRENTRY = os.DirEntry
+_CTYPES_LIB_CLASSES = tuple(c for c in (ctypes.CDLL, ctypes.PyDLL, getattr(ctypes, "WinDLL", None),
+                                        getattr(ctypes, "OleDLL", None)) if c is not None)
+_CDLL_DICT = ctypes.CDLL.__dict__["__dict__"]    # the genuine instance-__dict__ descriptor of ctypes' loaders
+_CFUNCPTR = ctypes._CFuncPtr
+_FUNCPTR_META = type(ctypes._CFuncPtr)
+_FUNCPTR_CLASS_KEYS = frozenset({"__module__", "__qualname__", "__doc__", "_flags_", "_restype_", "__dict__",
+                                 "__weakref__"})
+
+
+def _is(t, types) -> bool:
+    """Exact type identity (never hash / __eq__ / isinstance on a target object)."""
+    return any(t is k for k in types)
+
+
+def _tname(v) -> str:
+    """The type name of ``v`` as an exact str (str.__str__ copies a str subclass without calling its methods)."""
+    try:
+        return str.__str__(_TYPE_NAME.__get__(type(v)))
+    except Exception:                                    # noqa: BLE001
+        return "?"
+
+
+def _exact_key(d, key: str):
+    """d[key] for a real dict, matching only EXACT-str keys (a str-subclass key's __eq__ is never called)."""
+    if type(d) is not dict:
+        return None
+    for k, v in dict.items(d):
+        if type(k) is str and k == key:
+            return v
+    return None
+
+
+def _defines_fspath(t) -> bool:
+    """Whether a class (or a base) defines __fspath__, read through type's own descriptors (no metaclass code)."""
+    try:
+        for k in _TYPE_MRO.__get__(t):
+            for key in _TYPE_DICT.__get__(k):
+                if type(key) is not str or key == "__fspath__":
+                    return True
+    except Exception:                                    # noqa: BLE001 - unreadable: treat as path-like (refused)
+        return True
+    return False
+
+
+def _exact_state(v, depth=0) -> bool:
+    if v is None or _is(type(v), (str, int, bool)):
+        return True
+    if _is(type(v), (list, tuple)) and depth < 2:
+        return all(_exact_state(x, depth + 1) for x in (list.__iter__(v) if type(v) is list else tuple.__iter__(v)))
+    return False
+
+
+def _plain_path(v) -> str:
+    """Fix round 6 (finding 3): a path argument as an EXACT str, or ValueError (the caller refuses). Accepted: an
+    exact str, exact bytes (strict UTF-8), an os.DirEntry, or a stdlib pathlib object of an exact stdlib type whose
+    every set slot holds only exact builtin values (so pathlib's own __fspath__ runs on builtin data only). A str /
+    bytes subclass or any other PathLike is never converted: its methods would be target code inside the hook."""
+    t = type(v)
+    if t is str:
+        p = v
+    elif t is bytes:
+        p = v.decode("utf-8")                                 # strict: undecodable -> unparseable
+    elif t is _DIRENTRY:
+        p = v.path
+    elif _is(t, _STD_PATH_TYPES):
+        for d in _PATH_SLOTS:
+            try:
+                s = d.__get__(v)
+            except AttributeError:
+                continue
+            if not _exact_state(s):
+                raise ValueError("stdlib path with non-builtin state")
+        p = os.fspath(v)
+    else:
+        raise ValueError(f"unparseable path {_tname(v)}")
+    if type(p) is bytes:
+        p = p.decode("utf-8")
+    if type(p) is not str:
+        raise ValueError("unparseable path")
+    return p
+
+
 SCHEMA = "a3-t15cp2-probe/2"
 # ---- the barrier's event policy (fix round 2, review I2: FAIL CLOSED). Every audit event is one of:
 #   REFUSED families (prefix): process / thread creation, network, native-code and Windows-handle APIs, registry writes;
@@ -179,16 +291,27 @@ _WRITE_ACCESS = (_GENERIC_WRITE | _GENERIC_ALL | 0x00000002 | 0x00000004 | 0x000
 #                                                           WRITE_OWNER, MAXIMUM_ALLOWED
 _OPEN_EXISTING, _FLAG_DELETE_ON_CLOSE = 3, 0x04000000
 _SQLITE_OK, _SQLITE_DENY, _SQLITE_ATTACH = 0, 1, 24
-# fix round 3 N2 (narrow allowance, PENDING Codex's ruling, may be reverted): exactly the ctypes events recorded from a
-# SYNTHETIC toy with the import-time shape of s1_locks.py:12,34-43 (`import ctypes`: dlopen kernel32 + dlsym
-# GetLastError; `from ctypes import wintypes` and `import msvcrt`: none; `ctypes.WinDLL("kernel32")`: dlopen kernel32;
-# the CreateFileW / CloseHandle prototypes: dlsym of those two names). Every other ctypes / msvcrt / _winapi event -
-# call_function, cdata, addressof, string_at, set_last_error, dlsym/handle, any other library or symbol - is refused.
+# fix round 3 N2 - the narrow kernel32 library / symbol / prototype DECLARATION binding, accepted as amended in Codex's
+# exact-head review of 3e80738 (fix round 5, R-N2: declarations allowed, calls refused): exactly the ctypes events
+# recorded from a SYNTHETIC toy with the import-time shape of s1_locks.py:12,34-43 (`import ctypes`: dlopen kernel32 +
+# dlsym GetLastError; `from ctypes import wintypes` and `import msvcrt`: none; `ctypes.WinDLL("kernel32")`: dlopen
+# kernel32; the CreateFileW / CloseHandle prototypes: dlsym of those two names). Every other ctypes / msvcrt / _winapi
+# event - call_function, cdata, addressof, string_at, set_last_error, dlsym/handle, any other library or symbol - is
+# refused.
 CTYPES_ALLOWED = frozenset({("ctypes.dlopen", "kernel32"), ("ctypes.dlsym", "kernel32", "GetLastError"),
                             ("ctypes.dlsym", "kernel32", "CreateFileW"), ("ctypes.dlsym", "kernel32", "CloseHandle")})
+# fix round 5 (R-N2): EVERY allowed symbol comes back wrapped on the resolution path - derived, never restated
+CTYPES_WRAPPED = tuple(sorted((k[1], k[2]) for k in CTYPES_ALLOWED if k[0] == "ctypes.dlsym"))
 _SIDECARS = ("", "-wal", "-shm", "-journal")
 CLAIM = ("a cooperative child-local Python audit-hook barrier, not an OS sandbox: no claim of full isolation "
-         "(native code can bypass audit events); process containment alone does not block data access")
+         "(native code can bypass audit events); ctypes foreign-function calls are refused on the guarded resolution "
+         "path (CDLL.__getitem__, every allowed kernel32 symbol wrapped) and on the enumerated pre-hook aliases "
+         "(ctypes.GetLastError, pointers cached on loaded loader / CDLL instances, module-level _CFuncPtr objects in "
+         "sys.modules at guard install); the hook classifies arguments by exact type and never calls a target "
+         "object's methods, and an event raised while it is busy is refused; disclosed limits of this cooperative "
+         "barrier: a raw pointer obtained another way (closure or gc introspection, native code) and target code "
+         "that rebinds the stdlib / ctypes / probe internals the hook itself relies on; process containment alone "
+         "does not block data access")
 DEFAULT_PREFIX = ("research/s1/s1_tests", "research/s1", ".")     # final sys.path front order (A1)
 
 
@@ -218,13 +341,11 @@ def _sha_file(p) -> str | None:
 # ------------------------------------------------------------------------------------------ path resolution
 def resolve(p) -> str:
     """Canonical form for descendant checks: fsdecode, strip the extended-length prefix, absolute against cwd,
-    '..' collapsed, symlinks followed, case folded. Raises on anything unparseable."""
-    if isinstance(p, os.PathLike):
-        p = os.fspath(p)
-    if isinstance(p, bytes):
-        p = p.decode("utf-8")                                 # strict: undecodable -> unparseable
-    if not isinstance(p, str) or not p or "\x00" in p:
-        raise ValueError(f"unparseable path {type(p).__name__}")
+    '..' collapsed, symlinks followed, case folded. Raises on anything unparseable. Fix round 6 (finding 3): the
+    argument is first reduced to an exact str by _plain_path, so no target method runs here."""
+    p = _plain_path(p)
+    if not p or "\x00" in p:
+        raise ValueError("unparseable path str")
     p = p.replace("/", "\\")
     if p.startswith("\\\\?\\UNC\\"):
         p = "\\\\" + p[8:]
@@ -239,10 +360,7 @@ def _inside(rp: str, roots) -> bool:
 
 def _sqlite_target(db):
     """(kind, path) of a sqlite3.connect database argument: ("memory", None), ("path", p) or ("uri", p)."""
-    if isinstance(db, (bytes, os.PathLike)):
-        db = os.fsdecode(db)
-    if not isinstance(db, str):
-        raise ValueError("unparseable sqlite database")
+    db = _plain_path(db)                                     # fix round 6: exact str only, no target method
     if db == ":memory:":
         return "memory", None
     if db.startswith("file:"):
@@ -281,7 +399,7 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
         try:
             rp = resolve(p)
         except Exception:                                  # noqa: BLE001 - unknown access fails closed
-            refuse(event, "unparseable_path", type(p).__name__)
+            refuse(event, "unparseable_path", _tname(p))
         if rp in prot:
             refuse(event, "protected_read", rp)
 
@@ -289,29 +407,40 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
         try:
             rp = resolve(p)
         except Exception:                                  # noqa: BLE001
-            refuse(event, "unparseable_path", type(p).__name__)
+            refuse(event, "unparseable_path", _tname(p))
         if rp in prot:
             refuse(event, "protected_write", rp)
         if not _inside(rp, roots):
             refuse(event, "outside_scratch", rp)
 
-    def path_like(v) -> bool:
-        return isinstance(v, (str, bytes, os.PathLike))
-
     def hook(event, args):
+        # fix round 6 (finding 3): an event raised while the hook is already busy on this thread can only come from
+        # code running INSIDE the hook (the hook itself raises none: verified by the whole suite) - e.g. a finalizer
+        # or anything a target object slipped in - so it is REFUSED, never let through unchecked
         if getattr(local, "busy", False):
-            return
+            refuse(event, "reentrant_event", event if type(event) is str else "")
         local.busy = True
         try:
-            if event in ("ctypes.dlopen", "ctypes.dlsym"):              # fix round 3 N2: the recorded set only
-                if event == "ctypes.dlopen":
-                    key = (event, args[0] if args else None)
-                else:
-                    lib = args[0] if args else None
-                    key = (event, getattr(lib, "_name", None) if not isinstance(lib, (str, int)) else None,
-                           args[1] if len(args) > 1 else None)
-                if key not in CTYPES_ALLOWED or (event == "ctypes.dlsym" and not getattr(_CT, "active", False)):
-                    refuse(event, "refused_family", str(key[1:])[:120])
+            if event == "ctypes.dlopen":                 # fix round 3 N2 / fix round 6: exact str, recorded set only
+                name = args[0] if args else None
+                if type(name) is not str or (event, name) not in CTYPES_ALLOWED:
+                    refuse(event, "refused_family", name if type(name) is str else _tname(name))
+                return
+            if event == "ctypes.dlsym":
+                # fix round 6 (findings 2 + 3): ctypes' own loader class by exact type, its _name from the genuine
+                # instance __dict__ as an exact str, an exact-str symbol - no target property / __eq__ / __hash__
+                # runs; only on the guarded __getitem__ path, once per resolution (recorded for getitem's wrap)
+                lib, sym = (tuple(args) + (None, None))[:2]
+                libname = _lib_name(lib)
+                if libname is None or type(sym) is not str or (event, libname, sym) not in CTYPES_ALLOWED:
+                    refuse(event, "refused_family", f"{libname or _tname(lib)}."
+                                                    f"{sym if type(sym) is str else _tname(sym)}")
+                if not getattr(_CT, "active", False):
+                    refuse(event, "refused_family", f"{libname}.{sym} off the guarded resolution path")
+                allowed = getattr(_CT, "allowed", None)
+                if type(allowed) is not list or allowed:
+                    refuse(event, "dlsym_reentry", f"{libname}.{sym}: a second resolution in one guarded window")
+                allowed.append((lib, libname, sym))
                 return
             if event.startswith(REFUSED_PREFIXES) and event != "_winapi.CreateFile":
                 refuse(event, "refused_family", "")
@@ -320,7 +449,7 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
                 # connection of the guard class (which installs the authorizer right after its __init__) may open
                 cls = _GUARD.get("sqlite_cls")
                 if cls is None or not args or type(args[0]) is not cls:
-                    refuse(event, "authorizer_not_installed", type(args[0]).__name__ if args else "")
+                    refuse(event, "authorizer_not_installed", _tname(args[0]) if args else "")
             elif event == "_winapi.CreateFile":
                 name, access, _share, disposition, flags = (tuple(args) + (None,) * 5)[:5]
                 if not all(type(v) is int for v in (access, disposition, flags)):
@@ -330,8 +459,8 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
                     check_write(event, name)
             elif event == "mmap.__new__":
                 fileno = args[0] if args else None
-                if fileno != -1:
-                    refuse(event, "fd_mapping", f"fileno {fileno!r}")
+                if type(fileno) is not int or fileno != -1:
+                    refuse(event, "fd_mapping", f"fileno {fileno if type(fileno) is int else _tname(fileno)}")
             elif event == "sqlite3.connect":
                 if _GUARD.get("sqlite_cls") is not None and not getattr(_SQ, "active", False):
                     # fix round 4 (m1): a connection is (re)opened only through the guard path - a direct
@@ -347,11 +476,13 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
                     check_write(event, path)               # SQLite may create / journal: scratch only
             elif event == "open":
                 path, mode, flags = (tuple(args) + (None, None, None))[:3]
-                if isinstance(mode, str):
+                if type(mode) is str:                       # fix round 6: exact types only
                     writable = any(c in mode for c in "wax+")
+                elif mode is None and (flags is None or type(flags) is int):
+                    writable = type(flags) is int and bool(flags & _WRITE_FLAGS)
                 else:
-                    writable = isinstance(flags, int) and bool(flags & _WRITE_FLAGS)
-                if isinstance(path, int) and not isinstance(path, bool):
+                    refuse(event, "unparseable_mode", _tname(mode))
+                if type(path) is int:
                     if writable:
                         refuse(event, "fd_write", f"fd {path}")
                     return
@@ -372,17 +503,33 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
 
     def check_unlisted(event, value, depth):
         """Fix round 3 N3 / fix round 4 m3: tuple, list, set, frozenset and dict (keys AND values) arguments are
-        checked recursively (too deep: refused)."""
+        checked recursively (too deep: refused). Fix round 6 (finding 3): classified by type identity / the C-level
+        subtype check and iterated with the builtin types' own iterators, so no target __class__ / __iter__ /
+        __fspath__ / __index__ runs; a str / bytes subclass or a non-stdlib PathLike is refused, not converted."""
         for v in value:
-            if isinstance(v, (tuple, list, set, frozenset, dict)):
+            t = type(v)
+            if v is None or _is(t, (bool, float, complex)):
+                continue
+            if issubclass(t, (tuple, list, set, frozenset, dict)):
                 if depth >= 8:
                     refuse(event, "unlisted_event_nesting", "")
-                check_unlisted(event, [x for kv in v.items() for x in kv] if isinstance(v, dict) else list(v),
-                               depth + 1)
-            elif isinstance(v, int) and not isinstance(v, bool):
-                refuse(event, "unlisted_event_int", f"int argument {v}")
-            elif path_like(v):
+                if issubclass(t, dict):
+                    items = [x for kv in dict.items(v) for x in kv]
+                elif issubclass(t, tuple):
+                    items = list(tuple.__iter__(v))
+                elif issubclass(t, list):
+                    items = list(list.__iter__(v))
+                elif issubclass(t, frozenset):
+                    items = list(frozenset.__iter__(v))
+                else:
+                    items = list(set.__iter__(v))
+                check_unlisted(event, items, depth + 1)
+            elif issubclass(t, int):
+                refuse(event, "unlisted_event_int", f"int argument {v}" if t is int else _tname(v))
+            elif _is(t, (str, bytes, _DIRENTRY) + _STD_PATH_TYPES):
                 check_write(event, v)
+            elif issubclass(t, (str, bytes)) or _defines_fspath(t):
+                refuse(event, "untrusted_path_type", _tname(v))
 
     def authorizer(action, arg1, arg2, dbname, source):
         """SQLite authorizer (fix round 3 N1): ATTACH - also what VACUUM INTO asks - only for an in-memory database or
@@ -407,19 +554,46 @@ def make_barrier(scratch_roots, refusals: list, protected=()):
 
     hook.authorizer = authorizer
     hook.refuse_call = lambda name: refuse("ctypes.call_function", "foreign_call_refused",
-                                           f"kernel32.{name} (no 3.12 audit event; refused by the probe's wrapper)")
+                                           f"{name} (no 3.12 audit event; refused by the probe's wrapper)")
+    hook.refuse_resolution = lambda detail: refuse("ctypes.dlsym", "guarded_path_mismatch", detail)
+    hook._local = local                          # fix round 6: the per-thread busy flag (tests)
     return hook
+
+
+def _lib_name(lib):
+    """Fix round 6 (finding 3): the loader's name, or None - only for an instance of ctypes' OWN loader classes (exact
+    type identity: a subclass is refused) whose genuine instance __dict__ holds an exact-str _name. Nothing of the
+    target's (property, __getattr__, __eq__) runs."""
+    if not _is(type(lib), _CTYPES_LIB_CLASSES):
+        return None
+    try:
+        name = _exact_key(_CDLL_DICT.__get__(lib), "_name")
+    except Exception:                                  # noqa: BLE001
+        return None
+    return name if type(name) is str else None
+
+
+def _genuine_funcptr(fp) -> bool:
+    """The loader's _FuncPtr is the class ctypes' CDLL.__init__ made: exact metaclass, the single base _CFuncPtr and
+    no class attribute beyond ctypes' own (no __new__ / __init__ / descriptor the target could add)."""
+    if type(fp) is not _FUNCPTR_META:
+        return False
+    try:
+        bases, keys = _TYPE_BASES.__get__(fp), list(_TYPE_DICT.__get__(fp))
+    except Exception:                                  # noqa: BLE001
+        return False
+    return (type(bases) is tuple and len(bases) == 1 and bases[0] is _CFUNCPTR
+            and all(type(k) is str and k in _FUNCPTR_CLASS_KEYS for k in keys))
 
 
 # ---- guards installed right after the hook (fix round 3) -----------------------------------------------------
 _GUARD: dict = {}
 _CT = threading.local()                        # set only while the guarded CDLL.__getitem__ resolves a symbol
 _SQ = threading.local()                        # set only while GuardedConnection.__init__ (re)opens a connection
-CTYPES_WRAPPED = ("CreateFileW", "CloseHandle")
 
 
 def refusing_foreign_function(func, name, refuse_call):
-    """A kernel32 prototype the target may DECLARE (argtypes / restype are forwarded) but never CALL: calling a ctypes
+    """A foreign function the target may DECLARE (argtypes / restype are forwarded) but never CALL: calling a ctypes
     foreign function raises no audit event in 3.12, so the call is refused here and recorded. Fix round 4 (m2): the
     raw pointer lives only in this closure - the instance has no attributes (empty __slots__), so no plain attribute
     of the wrapper yields it. Cooperative: introspecting the class's function closures would still reach it."""
@@ -439,14 +613,65 @@ def refusing_foreign_function(func, name, refuse_call):
     return RefusingForeignFunction()
 
 
+def _namespace(obj):
+    """obj's own __dict__ (a real dict) or None - never a custom __getattr__ / lazy attribute."""
+    try:
+        d = object.__getattribute__(obj, "__dict__")
+    except Exception:                              # noqa: BLE001 - no namespace: nothing to scan
+        return None
+    return d if type(d) is dict else None
+
+
+def wrap_preexisting_foreign_functions(modules, wrap) -> list:
+    """Fix round 5 (R-N2): replace every pre-hook raw ctypes foreign-function alias with ``wrap(func, label)`` and
+    return the sorted labels found. Scanned: each module's namespace in ``modules`` (sys.modules at guard install) -
+    module-level _CFuncPtr objects (ctypes.GetLastError, memmove, memset, _cast, _string_at, _wstring_at ...), the
+    pointers cached on module-level CDLL instances, and on the CDLL instances cached by module-level LibraryLoader
+    objects (ctypes.windll.kernel32.GetLastError, cdll / oledll / pydll). Types only (type() / issubclass), never
+    isinstance or getattr, so no target-controlled code runs; one wrapper per raw pointer."""
+    fptr, cdll, loader = ctypes._CFuncPtr, ctypes.CDLL, ctypes.LibraryLoader
+    memo: dict = {}
+    found: list = []
+
+    def wrapped(func, label):
+        if id(func) not in memo:
+            memo[id(func)] = (func, wrap(func, label))      # func kept alive: its id stays unique
+        found.append(label)
+        return memo[id(func)][1]
+
+    def scan_dll(lib, label):
+        ns = _namespace(lib)
+        for k, v in list((ns or {}).items()):
+            if issubclass(type(v), fptr):
+                ns[k] = wrapped(v, f"{label}.{k}")
+            elif any(v is w for _, w in memo.values()):     # already replaced via another path: record this one too
+                found.append(f"{label}.{k}")
+    for mname, mod in sorted(modules.items(), key=lambda kv: str(kv[0])):
+        ns = _namespace(mod)
+        if ns is None:
+            continue
+        for k, v in list(ns.items()):
+            t = type(v)
+            if issubclass(t, fptr):
+                ns[k] = wrapped(v, f"{mname}.{k}")
+            elif issubclass(t, cdll):
+                scan_dll(v, f"{mname}.{k}")
+            elif issubclass(t, loader):
+                for a, lib in list((_namespace(v) or {}).items()):
+                    if issubclass(type(lib), cdll):
+                        scan_dll(lib, f"{mname}.{k}.{a}")
+    return sorted(set(found))
+
+
 def install_guards(hook) -> dict:
     """N1: sqlite3.connect makes a guard-class connection that installs the barrier's authorizer; a connection of
     another class (a direct _sqlite3 call, another factory) is refused by the handle event, and (fix round 4, m1) a
     (re)open off the guard path - e.g. sqlite3.Connection.__init__ on a guarded connection - by the connect event.
     COOPERATIVE, not fail-closed for every connection: the target can still call set_authorizer(None) on its own
     connection, which raises no audit event. N2: CDLL.__getitem__ (what
-    attribute access uses) is the only path on which the allowed kernel32 symbols resolve, and the two prototypes
-    come back wrapped so that a call is refused."""
+    attribute access uses) is the only path on which the allowed kernel32 symbols resolve, and (fix round 5, R-N2)
+    every one of them comes back wrapped so that a call is refused; the pre-hook raw aliases found in sys.modules are
+    replaced by refusing wrappers and recorded. Cooperative: a raw pointer reached another way is a disclosed limit."""
     auth = hook.authorizer
     orig_connect = sqlite3.connect
 
@@ -472,17 +697,41 @@ def install_guards(hook) -> dict:
     orig_getitem = ctypes.CDLL.__getitem__
 
     def getitem(self, name_or_ordinal):
-        _CT.active = True
+        """Fix round 6 (re-review 4, finding 2): no TOCTOU. The guarded window opens only for an instance of ctypes'
+        own loader class (exact type), an exact-str name, an exact-int handle and the genuine _FuncPtr class - all
+        read without target code - and the pointer is resolved here directly. EVERY pointer resolved in the window
+        is wrapped, unconditionally, and labelled from the names the HOOK validated (never re-read from target
+        state); the window must hold exactly one allowed dlsym, for this loader and this name, else it is refused
+        (also when the resolution raised). Anything else takes the original path with the window closed, where the
+        hook refuses every dlsym."""
+        ns = _CDLL_DICT.__get__(self) if _lib_name(self) is not None else None
+        fp, handle = _exact_key(ns, "_FuncPtr"), _exact_key(ns, "_handle")
+        if ns is None or type(name_or_ordinal) is not str or type(handle) is not int or not _genuine_funcptr(fp):
+            return orig_getitem(self, name_or_ordinal)
+        _CT.active, _CT.allowed = True, []
+        ok = False
         try:
-            func = orig_getitem(self, name_or_ordinal)
+            func = fp((name_or_ordinal, self))
+            ok = True
         finally:
-            _CT.active = False
-        if getattr(self, "_name", None) == "kernel32" and name_or_ordinal in CTYPES_WRAPPED:
-            return refusing_foreign_function(func, name_or_ordinal, hook.refuse_call)
-        return func
+            allowed = _CT.allowed
+            _CT.active, _CT.allowed = False, []
+            if not ok and allowed:
+                hook.refuse_resolution(f"a resolution that raised after {len(allowed)} allowed dlsym(s)")
+        if len(allowed) != 1 or allowed[0][0] is not self or allowed[0][2] != name_or_ordinal:
+            hook.refuse_resolution(f"{len(allowed)} allowed dlsym(s) for one resolution")
+        _, libname, sym = allowed[0]
+        func.__name__ = sym
+        return refusing_foreign_function(func, f"{libname}.{sym}", hook.refuse_call)
     ctypes.CDLL.__getitem__ = getitem
+    # fix round 5 (R-N2): the pre-hook raw aliases (ctypes.GetLastError, loader / CDLL caches, module-level pointers)
+    # never saw the guarded __getitem__ - replace each with a refusing wrapper before any mutation / target import
+    pre = wrap_preexisting_foreign_functions(
+        dict(sys.modules), lambda func, label: refusing_foreign_function(func, label, hook.refuse_call))
     return {"sqlite": "guard-class connections with the barrier's authorizer",
-            "ctypes": f"CDLL.__getitem__ guarded; {list(CTYPES_WRAPPED)} wrapped: declare yes, call refused"}
+            "ctypes": f"CDLL.__getitem__ guarded; {[list(x) for x in CTYPES_WRAPPED]} wrapped: declare yes, call "
+                      "refused; the enumerated pre-hook aliases below replaced by refusing wrappers",
+            "ctypes_preexisting_wrapped": pre}
 
 
 # -------------------------------------------------------------------------------------------- validation (A3)

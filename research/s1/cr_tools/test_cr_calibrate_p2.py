@@ -55,6 +55,20 @@ def genuine_items(n=24, *, special=None, runtime=0):
 GENUINE_ITEM = item("j05", "core/ReplaceBinaryOperator_Add_BitAnd", 0, (4, 19), (4, 20))
 
 
+def trace(line, cls="TypeError", msg="x", *, test="test_x.py", deeper=(), target="research\\s1\\s1_x.py"):
+    """Fix round 5 (X27): a pytest short-style collection longrepr - the test module, then the target at ``line``,
+    then any ``deeper`` (file, line) frames - ending in the E line. Rendered text: secondary veto evidence only."""
+    s = f"research\\s1\\s1_tests\\{test}:1: in <module>\n    import s1_x\n{target}:{line}: in <module>\n    X = 1\n"
+    for f, ln in deeper:
+        s += f"{f}:{ln}: in <module>\n    Y = 2\n"
+    return s + f"E   {cls}: {msg}"
+
+
+def err(line, cls="TypeError", **kw):
+    """One original collection error whose rendered trace ends at the target's ``line`` (fix round 5)."""
+    return {"errors": [{"nodeid": "research/s1/s1_tests/test_x.py", "longrepr": trace(line, cls, **kw)}]}
+
+
 def ptoy(tmp_path, src=GENUINE + RUNTIME_TAIL, special=None, runtime=0, **kw):
     sp = {"j05": GENUINE_ITEM} if special is None else special
     return toy(tmp_path, items=genuine_items(special=sp, runtime=runtime), module_src=src, completion=False, **kw)
@@ -210,8 +224,7 @@ def test_P5_the_c03580c0_shape_replay_continues_as_an_import_invalid_candidate(t
 ])
 def test_P3_class_body_and_def_defaults_in_the_enclosing_scope_are_genuine(tmp_path, src, it, ctx):
     toy(tmp_path, items=genuine_items(special={"j05": it}), module_src=src, completion=False)
-    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "research/s1/s1_tests/test_x.py",
-                                                   "longrepr": f"x\n{E_LINE}"}]}})
+    rep = psession(tmp_path, {"j05": err(it["start"][0])})        # fix round 5: a well-formed rendered trace
     assert rep["stop"] is None, rep["stop"]
     d = json.loads((job_dir(tmp_path) / "dg" / "disposition.json").read_text(encoding="utf-8"))
     assert d["context"] == ctx, d["context"]
@@ -318,7 +331,7 @@ def test_P1_a_failing_unmutated_control_halts_and_the_mutated_child_never_starts
     special = {"j05": item("j05", "core/ReplaceBinaryOperator_Add_BitAnd", 0, (5, 19), (5, 20))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {}}, calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(5)}, calls=calls, log=log)
     _diag_halt(tmp_path, rep, calls, "control")
     assert [c["mode"] for c in log] == ["control"], "child 2 never starts"
     assert not (job_dir(tmp_path) / "dg" / "m").exists()
@@ -369,8 +382,7 @@ def test_P3_a_target_frame_then_a_real_dependency_error_halts(tmp_path):
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False,
         extra={"research/s1/s1_dep.py": "def g(x):\n    return [0, 1, 2, 3, 4, 5][x]\n"})
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "t.py", "longrepr": "x\nE   IndexError: x"}]}},
-                   calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(3, "IndexError")}, calls=calls, log=log)
     halt = _diag_halt(tmp_path, rep, calls, "innermost")
     assert halt["frames_tail"][-1]["rel"] == "research/s1/s1_dep.py", halt
 
@@ -380,8 +392,7 @@ def test_P3_a_mutation_whose_failure_does_not_overlap_its_span_halts(tmp_path):
     special = {"j05": item("j05", "core/NumberReplacer", 0, (1, 4), (1, 5))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "t.py", "longrepr": "x\nE   IndexError: list index"}]}},
-                   calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(1, "IndexError")}, calls=calls, log=log)
     _diag_halt(tmp_path, rep, calls, "overlap")
 
 
@@ -392,15 +403,14 @@ def test_P3_a_mutant_that_imports_clean_halts_whatever_the_forged_e_text_says(tm
     special = {"j05": item("j05", "core/ReplaceBinaryOperator_Add_BitAnd", 0, (1, 6), (1, 7))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {}}, calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(1)}, calls=calls, log=log)
     _diag_halt(tmp_path, rep, calls, "imported")
 
 
 def test_P3_an_unrelated_exception_class_in_the_original_collection_halts(tmp_path):
     ptoy(tmp_path)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "t.py", "longrepr": "x\nE   ValueError: forged"}]}},
-                   calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(4, "ValueError", msg="forged")}, calls=calls, log=log)
     _diag_halt(tmp_path, rep, calls, "inconsistent")
 
 
@@ -410,8 +420,7 @@ def test_A2_a_barrier_refusal_halts(tmp_path, tmp_path_factory):
     special = {"j05": item("j05", "core/ReplaceComparisonOperator_Eq_NotEq", 0, (1, 5), (1, 7))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "t.py", "longrepr": "x\nE   BarrierRefusal: x"}]}},
-                   calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": err(1, "BarrierRefusal")}, calls=calls, log=log)
     halt = _diag_halt(tmp_path, rep, calls, "barrier")
     assert not outside.exists()
     # fix round 1 (A2): the refusal halts on its own trusted reason, before any frame is read as an origin
@@ -462,9 +471,15 @@ def _rec(frames, qual="TypeError", module="builtins", refusals=()):
 POST = GENUINE.replace("SLOT_KINDS + STAGE", "SLOT_KINDS & STAGE")
 
 
-def _gate(rec, *, pre=GENUINE, post=POST, start=(4, 19), end=(4, 20), names=("TypeError",)):
+def _origins(names, line, file=MOD_REL):
+    """Fix round 5 (X27): the per-error rendered origins qualify records (secondary veto facts)."""
+    return [{"nodeid": f"t{i}.py", "file": file, "line": line, "e_name": n} for i, n in enumerate(names)]
+
+
+def _gate(rec, *, pre=GENUINE, post=POST, start=(4, 19), end=(4, 20), names=("TypeError",), origins=None):
     return _fn("gate")(rec, module_rel=MOD_REL, pre_text=pre, post_text=post, post_sha="P", start=list(start),
-                       end=list(end), collect_names=list(names))
+                       end=list(end), collect_names=list(names),
+                       rendered_origins=_origins(names, start[0]) if origins is None else origins)
 
 
 def test_gate_the_genuine_record_passes():
@@ -808,13 +823,15 @@ def sentinel(tmp_path):
     return job_dir(tmp_path) / "dg" / "m" / "research/s1/SENTINEL"
 
 
-SENT_ERR = {"errors": [{"nodeid": "t.py", "longrepr": "x\nE   TypeError: x"}]}
+def sent_err(line):
+    """Fix round 5 (X27): the original collection error, rendered at the item's own line (was a bare E line)."""
+    return err(line)
 
 
 def test_fix1_A3_an_out_of_span_mutation_halts_before_import_and_the_sentinel_stays_absent(tmp_path):
     stoy(tmp_path)                                         # occurrence 0 mutates line 2; the item's span is line 3
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": sent_err(3)}, calls=calls, log=log)
     assert not sentinel(tmp_path).exists(), "the target was never imported"
     halt = _diag_halt(tmp_path, rep, calls, "mutated:refused:not_localized")
     assert [c["mode"] for c in log] == ["control", "mutated"]
@@ -824,7 +841,7 @@ def test_fix1_A3_an_out_of_span_mutation_halts_before_import_and_the_sentinel_st
 def test_fix1_A3_a_mutation_api_exception_halts_without_import(tmp_path):
     stoy(tmp_path, op="core/NoSuchOperator", line=2)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": sent_err(2)}, calls=calls, log=log)
     _diag_halt(tmp_path, rep, calls, "mutated:refused:mutation_api_exception")
     assert not sentinel(tmp_path).exists()
 
@@ -838,7 +855,7 @@ def test_fix1_A3_a_pre_source_mismatch_inside_the_child_halts_without_import(tmp
             p = Path(kw["cwd"]) / MOD_REL
             p.write_text(p.read_text(encoding="utf-8") + "# drift\n", encoding="utf-8")
         return None
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log, fake=fake)
+    rep = psession(tmp_path, {"j05": sent_err(2)}, calls=calls, log=log, fake=fake)
     _diag_halt(tmp_path, rep, calls, "mutated:refused:pre_source_mismatch")
     assert not sentinel(tmp_path).exists()
 
@@ -851,7 +868,7 @@ def test_fix1_A3_a_mutation_exceeding_the_child_time_budget_halts_without_import
         if m == "mutated":
             return cr_guard.run_contained(cmd, **dict(kw, deadline_s=0.05))
         return None
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log, fake=fake)
+    rep = psession(tmp_path, {"j05": sent_err(2)}, calls=calls, log=log, fake=fake)
     _diag_halt(tmp_path, rep, calls, "mutated:timed_out")
     assert not sentinel(tmp_path).exists()
 
@@ -912,7 +929,7 @@ def test_fix1_A2_a_protected_read_by_the_mutant_halts_and_never_reaches_a_record
     special = {"j05": item("j05", "core/ReplaceComparisonOperator_Eq_NotEq", 0, (1, 5), (1, 7))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log, _test_protected=[prot])
+    rep = psession(tmp_path, {"j05": sent_err(1)}, calls=calls, log=log, _test_protected=[prot])
     _diag_halt(tmp_path, rep, calls, "barrier")
     assert all(f"--protected" in c["cmd"] and str(prot) in c["cmd"] for c in log), "both children, same barrier"
     texts = [p.read_text(encoding="utf-8", errors="replace") for p in (tmp_path / "work").rglob("*.json")]
@@ -1029,7 +1046,7 @@ def test_fix2_I2_a_mutant_creating_a_file_through_winapi_halts_on_the_barrier(tm
     special = {"j05": item("j05", "core/ReplaceComparisonOperator_Eq_NotEq", 0, (2, 5), (2, 7))}
     toy(tmp_path, items=genuine_items(special=special), module_src=src, completion=False)
     calls, log = [], []
-    rep = psession(tmp_path, {"j05": SENT_ERR}, calls=calls, log=log)
+    rep = psession(tmp_path, {"j05": sent_err(2)}, calls=calls, log=log)
     halt = _diag_halt(tmp_path, rep, calls, "mutated:barrier_refusal")
     assert halt["facts"]["refusals"][0]["event"] == "_winapi.CreateFile" and not outside.exists()
 
@@ -1041,7 +1058,8 @@ def test_fix2_M3_the_parent_line_model_is_pythons():
     assert ok is True and info["post_span"] == [[2, 6], [2, 7]], info
     frame = _frame(pos=(2, 2, 4, 9), sha_="P")
     ok, info = _fn("gate")(_rec([frame]), module_rel=MOD_REL, pre_text=pre, post_text=post, post_sha="P",
-                           start=[2, 6], end=[2, 7], collect_names=["TypeError"])
+                           start=[2, 6], end=[2, 7], collect_names=["TypeError"],
+                           rendered_origins=_origins(["TypeError"], 2))
     assert ok is True and info["frame_span"] == [[2, 4], [2, 9]], info
 
 
@@ -1117,3 +1135,205 @@ def test_fix3_N5_the_measurement_set_is_checked_against_the_state_it_records(tmp
 def test_fix4_m4_the_driver_scope_discloses_the_bootstrap_preloads():
     s = _fn("PROBE_SCOPE")
     assert "sqlite3, ctypes and ctypes.wintypes" in s and "differs from collection" in s, s
+
+
+# ===================================================================================== fix round 5 (Codex 3e80738)
+# X27: the genuine contained mutated probe stays the PRIMARY origin evidence; every original collection error must
+# also pass a conservative SECONDARY rendered-trace veto (qualify AND gate): its parsed `path:lineno: in <name>`
+# locations end in the target at a line inside the mutation's span, no other file follows the first target frame, and
+# its E-line class is the probe's. The veto can only reject; anything unparseable / ambiguous HALTS.
+OTHER_HELPER = {"nodeid": "research/s1/s1_tests/test_other.py",
+                "longrepr": "research/s1/s1_tests/test_other.py:1: in <module>\n    import helper\n"
+                            "research/s1/helper.py:7: in <module>\n    BAD = 1 + None\n"
+                            "E   TypeError: unrelated dependency failure"}
+
+
+def _veto_halt(tmp_path, rep, calls, log):
+    """A veto HALT: halts as today at qualification - zero next call, no diagnosis child, raw facts stay error."""
+    why = _halts_as_today(tmp_path, rep, calls, log)
+    assert "rendered-trace veto" in why, why
+    r = state(tmp_path)["results"]["j05"]
+    assert r["label"] == "error" and r["guard_status"] == "error:collection" and "driver_disposition" not in r, r
+    assert r["raw"]["test_outcome"] == "survived", "the raw CR outcome is unchanged"
+    return why
+
+
+def test_fix5_X27_a_same_class_target_error_plus_a_dependency_error_halts(tmp_path):
+    """Codex's counterexample shape: a genuine target TypeError plus a same-class TypeError from helper.py:7 reached
+    through test_other.py. Before fix round 5 j05 became import-invalid-candidate and all 24 items ran."""
+    ptoy(tmp_path)
+    calls, log = [], []
+    errs = err(4)["errors"] + [OTHER_HELPER]
+    rep = psession(tmp_path, {"j05": {"errors": errs}}, calls=calls, log=log)
+    why = _veto_halt(tmp_path, rep, calls, log)
+    assert "test_other.py" in why and "innermost_not_target" in why, why
+
+
+LONG_LOC = "research\\s1\\s1_x.py:4: TypeError\n"          # pytest's long-style location line (another format)
+
+
+@pytest.mark.parametrize("case,longrepr,code", [
+    # (b) same class, the target file, a line outside the mutation span (the span is line 4)
+    ("other_line", trace(2), "line_outside_span"),
+    # (c) no parseable location line / a missing origin
+    ("no_location_line", f"x\n{E_LINE}", "no_location_line"),
+    ("unparseable_lineno", trace("four"), "unparseable_location"),
+    ("long_style_only", f"{LONG_LOC}{E_LINE}", "no_location_line"),
+    ("two_formats", trace(4).replace("E   TypeError", LONG_LOC + "E   TypeError"), "ambiguous_format"),
+    ("e_line_before_location", "E   TypeError: early\nresearch\\s1\\s1_x.py:4: in <module>\n    X = 1",
+     "e_line_missing"),
+    ("absolute_target_path", trace(4, target="C:\\elsewhere\\research\\s1\\s1_x.py"), "innermost_not_target"),
+    # (d) a target frame followed by a deeper dependency frame inside ONE error
+    ("target_then_dependency", trace(4, deeper=[("research\\s1\\helper.py", 7)]), "innermost_not_target"),
+    ("target_dependency_target", trace(4, deeper=[("research\\s1\\helper.py", 7), ("research\\s1\\s1_x.py", 4)]),
+     "dependency_after_target"),
+])
+def test_fix5_X27_the_rendered_trace_veto_halts_negative_shapes(tmp_path, case, longrepr, code):
+    ptoy(tmp_path)
+    calls, log = [], []
+    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "research/s1/s1_tests/test_x.py", "longrepr": longrepr}]}},
+                   calls=calls, log=log)
+    why = _veto_halt(tmp_path, rep, calls, log)
+    assert code in why, (case, why)
+
+
+def test_fix5_X27_several_selectors_failing_at_the_same_target_site_continue(tmp_path):
+    """(e) POSITIVE: two test modules import the target and both fail at the same mutated site (the real c03580c0
+    shape had two selectors): the item continues as an import-invalid candidate, with the parsed origins recorded as
+    a secondary veto that passed - never as provenance."""
+    ptoy(tmp_path)
+    calls, log = [], []
+    errs = [{"nodeid": "research/s1/s1_tests/test_x.py", "longrepr": trace(4, test="test_x.py")},
+            {"nodeid": "research/s1/s1_tests/test_y.py",
+             "longrepr": trace(4, test="test_y.py").replace("\\", "/")}]
+    rep = psession(tmp_path, {"j05": {"errors": errs}}, calls=calls, log=log)
+    assert rep["stop"] is None, rep["stop"]
+    assert [j for _, j in calls] == [f"j{i:02d}" for i in range(24)]
+    st = state(tmp_path)
+    assert st["results"]["j05"]["driver_disposition"] == "import-invalid-candidate"
+    d = json.loads((job_dir(tmp_path) / "dg" / "disposition.json").read_text(encoding="utf-8"))
+    got = [(o["nodeid"], o["file"], o["line"]) for o in d["qualification"].get("rendered_origins", [])]
+    assert got == [("research/s1/s1_tests/test_x.py", MOD_REL, 4), ("research/s1/s1_tests/test_y.py", MOD_REL, 4)]
+    assert "secondary rendered-trace veto passed" in d["qualification"]["rendered_veto"]
+    assert "never provenance" in d["qualification"]["rendered_veto"]
+    assert any("secondary rendered-trace veto passed" in r for r in d["gate"]["reasons"]), d["gate"]["reasons"]
+
+
+def _gate5(rec, origins, *, names=("TypeError",)):
+    import inspect
+    g = _fn("gate")
+    assert "rendered_origins" in inspect.signature(g).parameters, "gate takes the rendered origins (X27 veto)"
+    return g(rec, module_rel=MOD_REL, pre_text=GENUINE, post_text=POST, post_sha="P", start=[4, 19], end=[4, 20],
+             collect_names=list(names), rendered_origins=origins)
+
+
+@pytest.mark.parametrize("origins", [
+    None, [], _origins(["TypeError"], 4, file="research/s1/helper.py"), _origins(["TypeError"], 7),
+    [dict(_origins(["TypeError"], 4)[0], e_name="ValueError")], _origins(["TypeError", "TypeError"], 4),
+    [{"nodeid": "t.py", "file": MOD_REL, "line": "4", "e_name": "TypeError"}],
+])
+def test_fix5_X27_the_gate_re_applies_the_veto(origins):
+    ok, info = _gate5(_rec([_frame()]), origins)
+    assert ok is False and "rendered_veto" in info["why"], info
+
+
+def test_fix5_X27_the_gate_passes_a_consistent_origin_as_secondary_only():
+    ok, info = _gate5(_rec([_frame()]), _origins(["TypeError"], 4))
+    assert ok is True, info
+    assert any("secondary rendered-trace veto passed" in r and "never provenance" in r for r in info["reasons"])
+
+
+# R-N2 (Claude's ruling: wrap every allowed callable and the enumerated pre-hook aliases): Codex's shape - a kernel32
+# WinDLL calling GetLastError at import - must refuse and HALT as a barrier refusal (GetLastError: a harmless query,
+# the only native call any fix-round-5 test can reach; no other native call is run).
+CODEX_GLE = 'import ctypes\nDLL = ctypes.WinDLL("kernel32", use_last_error=True)\nRESULT = DLL.GetLastError()\n'
+
+
+def test_fix5_RN2_a_get_last_error_call_at_import_halts_the_session_on_the_barrier(tmp_path):
+    special = {"j05": item("j05", "core/ReplaceBinaryOperator_Add_BitAnd", 0, (7, 19), (7, 20))}
+    toy(tmp_path, items=genuine_items(special=special), module_src=CODEX_GLE + GENUINE, completion=False)
+    calls, log = [], []
+    rep = psession(tmp_path, {"j05": err(7)}, calls=calls, log=log)
+    halt = _diag_halt(tmp_path, rep, calls, "barrier_refusal")
+    assert halt["why"] == "control:barrier_refusal", halt
+    assert [c["mode"] for c in log] == ["control"], "child 2 never starts"
+
+
+def test_fix5_R1_and_645_are_recorded_as_ruled_not_pending():
+    src = Path(_drv().__file__).read_text(encoding="utf-8")
+    assert "pending a peer ruling" not in src and "pending a ruling" not in src.lower()
+    assert "1270dc4e" in src
+    assert _fn("CAP_MIN_MEASUREMENTS") == 24 == _fn("expected_bounds")()["cap_min_measurements"]
+
+
+# ===================================================================================== fix round 6 (re-review 4)
+# X27 line model: pytest splits the exception text on "\n" only (and prefixes each piece with "E   "), so the veto
+# splits on "\n" only AND halts (ambiguous_format) on any other str.splitlines separator. Truncation: the guard keeps
+# str(report.longrepr)[:cap]; a longrepr at the cap may have lost a later dependency frame, so it HALTS (truncated).
+SEPS = {"CR": "\r", "VT": "\x0b", "FF": "\x0c", "FS": "\x1c", "GS": "\x1d", "RS": "\x1e", "NEL": "\x85",
+        "LS": " ", "PS": " "}
+
+
+def helper_with_fake_target(sep):
+    """Codex's helper.py:7 dependency error whose MESSAGE carries ``sep`` + a fake target location + an E line."""
+    return ("research/s1/s1_tests/test_other.py:1: in <module>\n    import helper\n"
+            "research/s1/helper.py:7: in <module>\n    BAD = 1 + None\n"
+            f"E   TypeError: y{sep}research/s1/s1_x.py:4: in <module>{sep}E   TypeError: z")
+
+
+@pytest.mark.parametrize("sep", sorted(SEPS))
+def test_fix6_X27_a_non_newline_line_separator_halts_as_ambiguous(sep):
+    ok, info = _fn("rendered_origin")(helper_with_fake_target(SEPS[sep]), MOD_REL, [4, 19], [4, 20], cap=4000)
+    assert ok is False and "ambiguous_format" in info["why"], (sep, ok, info)
+
+
+def test_fix6_X27_e_names_split_on_newline_only():
+    assert _fn("_e_name")("x\nE   TypeError: a\rE   ValueError: b") == "TypeError"
+
+
+def test_fix6_X27_the_cr_variant_of_codexs_shape_halts_end_to_end(tmp_path):
+    """Real contained children would run if the veto passed; it must not: zero next call, no child, raw error."""
+    ptoy(tmp_path)
+    calls, log = [], []
+    errs = err(4)["errors"] + [{"nodeid": "research/s1/s1_tests/test_other.py",
+                                "longrepr": helper_with_fake_target("\r").replace("/", "\\")}]
+    rep = psession(tmp_path, {"j05": {"errors": errs}}, calls=calls, log=log)
+    why = _veto_halt(tmp_path, rep, calls, log)
+    assert "ambiguous_format" in why, why
+
+
+GUARD_SRC = Path(__file__).resolve().parents[1] / "s1_tests" / "cr_guard.py"
+
+
+def test_fix6_X27_the_truncation_cap_is_derived_from_the_guard_source(tmp_path):
+    cap = _fn("guard_longrepr_cap")
+    assert cap(GUARD_SRC) == 4000, "pinned against cr_guard's str(report.longrepr)[:4000]"
+    other = tmp_path / "g.py"
+    other.write_text("R = {'longrepr': str(report.longrepr)[:3000]}\n", encoding="utf-8")
+    assert cap(other) == 3000
+    other.write_text("R = {'longrepr': str(report.longrepr)}\n", encoding="utf-8")
+    assert cap(other) is None, "no cap found: the veto cannot know the cut"
+    other.write_text("A = str(report.longrepr)[:10]\nB = str(report.longrepr)[:20]\n", encoding="utf-8")
+    assert cap(other) is None, "two caps: ambiguous"
+
+
+@pytest.mark.parametrize("n,ok_", [(3999, True), (4000, False), (4100, False)])
+def test_fix6_X27_a_longrepr_at_the_guard_cap_halts_as_truncated(n, ok_):
+    assert _fn("guard_longrepr_cap")(GUARD_SRC) == 4000
+    base = trace(4)
+    text = base.replace("E   TypeError: x", "E   TypeError: " + "x" * (n - len(base) + 1))
+    assert len(text) == n
+    ok, info = _fn("rendered_origin")(text, MOD_REL, [4, 19], [4, 20], cap=4000)
+    assert ok is ok_, info
+    if not ok_:
+        assert "truncated" in info["why"], info
+
+
+def test_fix6_X27_a_truncated_original_error_halts_the_session(tmp_path):
+    ptoy(tmp_path)
+    calls, log = [], []
+    long = trace(4).replace("E   TypeError: x", "E   TypeError: " + "x" * 4000)[:4000]
+    rep = psession(tmp_path, {"j05": {"errors": [{"nodeid": "research/s1/s1_tests/test_x.py", "longrepr": long}]}},
+                   calls=calls, log=log)
+    why = _veto_halt(tmp_path, rep, calls, log)
+    assert "truncated" in why, why
