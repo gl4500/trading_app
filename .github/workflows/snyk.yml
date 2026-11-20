@@ -1,0 +1,63 @@
+name: Snyk
+
+# Periodic dependency-CVE scan. Moved out of ci.yml (which ran it on every push to every
+# branch) because the free Snyk plan has a small monthly test quota: 2 `snyk test` calls
+# per run. Budget: weekly cron ≈ 9 tests/month, plus PRs to main that touch a dependency
+# manifest, the Snyk policy file or this workflow. Run on demand via workflow_dispatch.
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Mondays 06:00 UTC
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/requirements*.txt"
+      - "backend/.snyk"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - ".github/workflows/snyk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+
+  # Snyk SCA, uses the SNYK_TOKEN repo secret. Sole dependency-CVE scanner (Snyk's own DB;
+  # pairs with Snyk Code/SAST from the SCM integration). `snyk test` fails the job on any
+  # high+ vuln NOT accepted in backend/.snyk — the policy file of tracked, time-limited
+  # exceptions. Accepted ones auto-expire, so the weekly run forces periodic re-review.
+  snyk:
+    name: Snyk test
+    runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: snyk/actions/setup@master
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Snyk's Python scanner needs the manifest's packages installed. Torch is excluded
+      # (too large for CI), so scan a torch-excluded manifest matching the install, else
+      # Snyk errors SNYK-OS-PYTHON-0013. Run from backend/ so snyk reads backend/.snyk.
+      - name: Snyk backend (Python)
+        working-directory: backend
+        run: |
+          grep -v '^torch' requirements.txt > requirements-scan.txt
+          pip install --quiet -r requirements-scan.txt
+          snyk test --package-manager=pip --file=requirements-scan.txt --severity-threshold=high
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Snyk frontend (Node)
+        working-directory: frontend
+        run: |
+          npm ci
+          snyk test --severity-threshold=high

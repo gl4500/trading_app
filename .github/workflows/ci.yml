@@ -94,49 +94,6 @@ jobs:
           name: bandit-report
           path: backend/bandit-report.json
 
-  # ── 3b. Snyk (SCA, uses the SNYK_TOKEN repo secret) ─────────────────────────
-  # Sole dependency-CVE scanner (Snyk's own DB; pairs with Snyk Code/SAST from the SCM
-  # integration). BLOCKING: `snyk test` fails the job on any high+ vuln NOT accepted in
-  # backend/.snyk — the policy file of tracked, time-limited exceptions (currently the
-  # deferred starlette CVEs, and the no-upstream-fix transformers CVEs). New vulnerable
-  # deps therefore fail CI; accepted ones auto-expire to force periodic re-review.
-  snyk:
-    name: Snyk test
-    runs-on: ubuntu-latest
-    needs: secret-scan
-    env:
-      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: snyk/actions/setup@master
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      # Snyk's Python scanner needs the manifest's packages installed. Torch is excluded
-      # (too large for CI), so scan a torch-excluded manifest matching the install, else
-      # Snyk errors SNYK-OS-PYTHON-0013. Run from backend/ so snyk reads backend/.snyk.
-      - name: Snyk backend (Python)
-        working-directory: backend
-        run: |
-          grep -v '^torch' requirements.txt > requirements-scan.txt
-          pip install --quiet -r requirements-scan.txt
-          snyk test --package-manager=pip --file=requirements-scan.txt --severity-threshold=high
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Snyk frontend (Node)
-        working-directory: frontend
-        run: |
-          npm ci
-          snyk test --severity-threshold=high
-
   # ── 4. Frontend type-check ──────────────────────────────────────────────────
   frontend-typecheck:
     name: Frontend type-check
