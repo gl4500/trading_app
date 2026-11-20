@@ -7,6 +7,7 @@ any module that already did ``from data.signal_model import signal_model``
 (e.g. agents.xgb_reasoning_agent) keeps a stale alias and silently misbehaves
 in unrelated tests that run later in the suite.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import unittest

@@ -1,3 +1,4 @@
+import tests._isolation  # noqa: F401 - must precede any backend import
 import unittest
 import tempfile
 from pathlib import Path

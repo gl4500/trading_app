@@ -1,4 +1,5 @@
 """Tests for data/split_adjuster.py — Backlog 0.2 stock-split detection + apply."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import unittest
 from unittest.mock import AsyncMock, MagicMock
 

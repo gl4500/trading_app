@@ -8,6 +8,7 @@ Covers:
   - summary() keys
   - Edge cases (insufficient data, empty list)
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import math
 import unittest
 

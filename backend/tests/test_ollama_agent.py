@@ -6,6 +6,7 @@ ensemble.
 Coverage: analyze() happy path, fallback when Ollama is unreachable,
 malformed-JSON handling, _api_lock concurrency guard, no-cloud-call invariant.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

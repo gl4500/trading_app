@@ -4,6 +4,7 @@ Unit tests for data/macro_history.py and the macro backfill extension.
 Covers: schema, RV/return computation, VIX normalization, regime scoring,
         idempotency, fallback, CNN channel integration.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import asyncio
 import os
 import sys

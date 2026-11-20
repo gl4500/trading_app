@@ -11,6 +11,7 @@ Usage:
     PYTHONPATH=../site-packages ../runtime/python/python.exe \
       -m unittest tests.test_cnn_random_feature -v
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import unittest
 
 import numpy as np

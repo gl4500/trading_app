@@ -4,6 +4,7 @@ Covers: _calculate_momentum(), _check_trailing_stop(), _generate_signal(),
         full analyze() cycle.
 Requires: pandas
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

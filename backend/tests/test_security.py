@@ -13,6 +13,7 @@ Covers the threat surface relevant to a locally-hosted trading app:
 Run with:
     cd backend && runtime\\python\\python.exe run_tests.py tests/test_security.py -v
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import re

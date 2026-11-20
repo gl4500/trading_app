@@ -9,6 +9,7 @@ Verifies:
   * legacy DBs whose columns already exist (from the old try/except style
     migrations) record the version as applied WITHOUT re-running the ALTER
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

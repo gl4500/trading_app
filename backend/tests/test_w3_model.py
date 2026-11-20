@@ -11,6 +11,7 @@ Conventions:
   - No real model file — every test generates a synthetic .pt in tempfile.
   - Tests must not require torch CUDA — exercise the CPU path.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import tempfile

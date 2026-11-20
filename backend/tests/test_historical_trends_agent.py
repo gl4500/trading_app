@@ -3,6 +3,7 @@ Unit tests for agents/historical_trends_agent.py
 Covers: _seasonal_score(), _channel_analysis(), _multi_period_momentum(),
         _long_term_volume_trend(), _generate_signal(), analyze() integration.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

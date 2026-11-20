@@ -1,4 +1,5 @@
 """Unit tests for xgb_decision — pure BUY decision helpers."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

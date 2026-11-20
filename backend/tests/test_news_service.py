@@ -4,6 +4,7 @@ Unit tests for data/news_service.py — retry, circuit breaker, and timeout.
 Mocks the synchronous Alpaca client call (`_fetch_news_sync`) so no real
 network I/O happens.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import time

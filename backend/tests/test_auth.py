@@ -4,6 +4,7 @@ Tests for backend/auth.py — session management and password verification.
 Run with:
     cd backend && runtime\\python\\python.exe run_tests.py tests/test_auth.py -v
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import time

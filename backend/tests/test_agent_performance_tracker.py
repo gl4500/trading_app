@@ -3,6 +3,7 @@ Unit tests for data/agent_performance_tracker.py
 Covers: AgentPerformanceTracker.refresh, get_scores, consensus_score,
         agreement_fraction, top_agent, get_metrics_summary
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import asyncio
 import os
 import sys

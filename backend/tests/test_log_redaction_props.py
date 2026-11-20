@@ -2,6 +2,7 @@
 Generated properties for secret redaction (C-2). Hypothesis is not part of the app runtime, so these skip there
 and run in the isolated review environment (pip: hypothesis). Requirement IDs as in test_log_redaction_review1.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import logging
 import os
 import string

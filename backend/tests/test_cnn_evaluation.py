@@ -1,4 +1,5 @@
 """Tests for the CNN evaluation harness — IC, IR, calibration, walk-forward folds."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import math
 import unittest
 

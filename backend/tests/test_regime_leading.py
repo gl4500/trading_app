@@ -11,6 +11,7 @@ score in [-1, +1]:
 A positive score = bullish lead; negative = bearish lead. Missing components are
 skipped (not zeroed) so partial data still yields a meaningful score.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import unittest
 
 from data.regime_leading import compute_leading_score

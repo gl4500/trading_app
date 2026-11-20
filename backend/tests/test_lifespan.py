@@ -16,6 +16,7 @@ HistoricalTrendsAgent (+17.9%), MeanReversionAgent (+22.9%), XGBReasoningAgent
 inconclusive; +7.3% with that holding at zero), ScannerAgent (+5.2%),
 SentimentAgent (+0.0%).
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import os
 import sys
 import unittest

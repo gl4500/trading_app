@@ -19,6 +19,7 @@ Does NOT cover (these are intentionally forward-looking labels, not features):
   - return_1d, return_5d, return_10d
 """
 from __future__ import annotations
+import tests._isolation  # noqa: F401 - must precede any backend import
 
 import os
 import sys

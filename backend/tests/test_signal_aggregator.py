@@ -4,6 +4,7 @@ Covers: _score_headlines(), _aggregate_scores(), format_for_prompt().
 get_composite_signal() hits external APIs and is not tested here — those
 require integration tests with mocked HTTP clients.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest

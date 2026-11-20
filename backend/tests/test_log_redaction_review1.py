@@ -7,6 +7,7 @@ the fixes. Requirement IDs:
   RED-5 a secret query value is redacted through its full URL grammar (incl. sub-delimiters such as ')
 Dummy credentials only; temp sinks; httpx.MockTransport (no network).
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import io
 import logging
 import os

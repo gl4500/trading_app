@@ -1,4 +1,5 @@
 """Tests for WatchlistManager — fluid watchlist ranked by projected return."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import importlib
 import unittest
 from unittest.mock import patch

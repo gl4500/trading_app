@@ -2,6 +2,7 @@
 Unit tests for agents/gemini_agent.py
 Covers: analyze() fallback, backoff counter, cache replay, _api_lock
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio

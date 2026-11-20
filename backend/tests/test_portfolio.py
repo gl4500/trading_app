@@ -3,6 +3,7 @@ Unit tests for trading/portfolio.py
 Covers: buy/sell execution, cash tracking, avg cost averaging,
         metrics calculation, Sharpe ratio, max drawdown.
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import time

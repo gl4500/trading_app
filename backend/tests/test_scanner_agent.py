@@ -3,9 +3,11 @@ Unit tests for agents/scanner_agent.py
 Covers: _coerce_rec(), _merge_recommendations(), _split_candidates(),
         get_cached_scan(), _pre_screen() (mocked), _build_user_message()
 """
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import asyncio
+import shutil
 import tempfile
 import time
 import unittest
@@ -38,14 +40,21 @@ from agents.scanner_agent import (
 # fixture data.
 _PROD_SCANNER_RECS_LOG: str | None = None
 _TEMP_SCANNER_RECS_LOG: str | None = None
+# Same for the disk scan cache: run_scan() persists every result to
+# backend/data/scan_cache.json, which the live backend reloads at startup.
+_PROD_CACHE_FILE: str | None = None
+_TEMP_CACHE_DIR: str | None = None
 
 
 def setUpModule() -> None:
-    global _PROD_SCANNER_RECS_LOG, _TEMP_SCANNER_RECS_LOG
+    global _PROD_SCANNER_RECS_LOG, _TEMP_SCANNER_RECS_LOG, _PROD_CACHE_FILE, _TEMP_CACHE_DIR
     _PROD_SCANNER_RECS_LOG = scanner_module._SCANNER_RECS_LOG
     fd, _TEMP_SCANNER_RECS_LOG = tempfile.mkstemp(suffix=".jsonl", prefix="test_scanner_recs_")
     os.close(fd)
     scanner_module._SCANNER_RECS_LOG = _TEMP_SCANNER_RECS_LOG
+    _PROD_CACHE_FILE = scanner_module._CACHE_FILE
+    _TEMP_CACHE_DIR = tempfile.mkdtemp(prefix="test_scan_cache_")
+    scanner_module._CACHE_FILE = os.path.join(_TEMP_CACHE_DIR, "scan_cache.json")
 
 
 def tearDownModule() -> None:
@@ -56,6 +65,10 @@ def tearDownModule() -> None:
             os.unlink(_TEMP_SCANNER_RECS_LOG)
         except OSError:
             pass
+    if _PROD_CACHE_FILE is not None:
+        scanner_module._CACHE_FILE = _PROD_CACHE_FILE
+    if _TEMP_CACHE_DIR:
+        shutil.rmtree(_TEMP_CACHE_DIR, ignore_errors=True)
 
 
 class TestCoerceRec(unittest.TestCase):
@@ -1718,3 +1731,14 @@ class TestGeminiScannerPartConstruction(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDiskCacheIsolation(unittest.TestCase):
+    """Tests must never write the production scan cache (backend/data/scan_cache.json)."""
+
+    def test_scan_cache_file_redirected_to_temp(self):
+        prod = os.path.normcase(os.path.realpath(os.path.join(
+            os.path.dirname(scanner_module.__file__), "..", "data", "scan_cache.json")))
+        current = os.path.normcase(os.path.realpath(scanner_module._CACHE_FILE))
+        self.assertNotEqual(current, prod)
+        self.assertTrue(current.startswith(os.path.normcase(os.path.realpath(tempfile.gettempdir()))))

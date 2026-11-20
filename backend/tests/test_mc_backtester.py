@@ -1,4 +1,5 @@
 """Unit tests for mc_backtester — simulator first; portfolio + replay + aggregator added in later tasks."""
+import tests._isolation  # noqa: F401 - must precede any backend import
 import sys
 import os
 import unittest
