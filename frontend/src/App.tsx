@@ -5,6 +5,7 @@ import { TimezoneProvider } from './context/TimezoneContext'
 import TimezoneSelector from './components/TimezoneSelector'
 import AppShellV2 from './v2/AppShellV2'
 import { isV2Enabled } from './v2/switch'
+import { installAuthExpiryFetch, markAuthenticated, onAuthExpired } from './authExpiry'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -150,9 +151,16 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // Any later /api 401 means the backend session is gone (restart or TTL) —
+  // drop back to the login page instead of leaving every panel failing.
+  useEffect(() => {
+    installAuthExpiryFetch()
+    return onAuthExpired(() => setIsAuthenticated(false))
+  }, [])
+
   useEffect(() => {
     fetch('/api/auth/check')
-      .then(r => { if (r.ok) setIsAuthenticated(true) })
+      .then(r => { if (r.ok) { markAuthenticated(); setIsAuthenticated(true) } })
       .catch(() => {/* server unreachable — stay on login */})
       .finally(() => setAuthChecked(true))
   }, [])
@@ -167,7 +175,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />
+    return <LoginPage onLogin={() => { markAuthenticated(); setIsAuthenticated(true) }} />
   }
 
   // ── Main App ────────────────────────────────────────────────────────────────
