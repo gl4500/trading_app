@@ -58,7 +58,10 @@ the operator if needed; this change does not inspect or clear the live cache.
 
 ### Scope and acceptance examples
 
-CI invokes `snyk test` from `backend/`, which reads `backend/.snyk`. Only the
+The Snyk workflow (`.github/workflows/snyk.yml`: weekly, on demand, and on PRs to
+`main` that touch a dependency manifest or `backend/.snyk`) invokes `snyk test`
+from `backend/`, which reads `backend/.snyk`. An expired exception therefore
+surfaces on the next weekly run, not on every push. Only the
 new advisory ID receives an exception. The existing high-severity threshold,
 other advisory entries/expiries, Bandit gate and frontend scan remain intact.
 `backend/requirements.txt` and the offline wheel cache `backend/packages/`
@@ -121,7 +124,7 @@ narrows the range.
   safetensors 0.7.0.
 - torch 2.6.0+cu124 is in `runtime/python/Lib/site-packages`.
 - `backend/requirements.txt:21` declares `transformers>=4.40.0`. It is
-  unpinned, so CI (`.github/workflows/ci.yml:124-128`) installs and scans the
+  unpinned, so the Snyk workflow (`.github/workflows/snyk.yml:48-53`) installs and scans the
   newest release.
 - The offline wheel cache `backend/packages/` holds **no** transformers wheel.
 
